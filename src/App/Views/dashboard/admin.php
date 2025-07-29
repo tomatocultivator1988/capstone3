@@ -122,21 +122,21 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadDashboardStats() {
     try {
         // Load users count
-        const usersResponse = await fetch('/api/users/index.php');
+        const usersResponse = await fetch('../api/users/index.php');
         const usersData = await usersResponse.json();
         if (usersData.status === 'success') {
             document.getElementById('totalUsers').textContent = usersData.data.length;
         }
 
         // Load subjects count
-        const subjectsResponse = await fetch('/api/subjects/index.php');
+        const subjectsResponse = await fetch('../api/subjects/index.php');
         const subjectsData = await subjectsResponse.json();
         if (subjectsData.status === 'success') {
             document.getElementById('totalSubjects').textContent = subjectsData.data.length;
         }
 
         // Load exams count
-        const examsResponse = await fetch('/api/exams/index.php');
+        const examsResponse = await fetch('../api/exams/index.php');
         const examsData = await examsResponse.json();
         if (examsData.status === 'success') {
             document.getElementById('totalExams').textContent = examsData.data.length;
@@ -146,6 +146,11 @@ async function loadDashboardStats() {
         }
     } catch (error) {
         console.error('Error loading dashboard stats:', error);
+        // Show error in the UI
+        document.getElementById('totalUsers').textContent = 'Error';
+        document.getElementById('totalSubjects').textContent = 'Error';
+        document.getElementById('totalExams').textContent = 'Error';
+        document.getElementById('activeExams').textContent = 'Error';
     }
 }
 
