@@ -2,15 +2,17 @@
 
 namespace App\Controllers;
 
-use App\Models\User;
+use App\Services\AuthService;
+use App\Services\ServiceContainer;
+use Exception;
 
 class AuthController
 {
-    private $userModel;
+    private AuthService $authService;
 
-    public function __construct()
+    public function __construct(?AuthService $authService = null)
     {
-        $this->userModel = new User();
+        $this->authService = $authService ?? ServiceContainer::getInstance()->get(AuthService::class);
     }
 
     /**
@@ -49,19 +51,10 @@ class AuthController
                 return;
             }
 
-            // Authenticate user
-            $user = $this->userModel->authenticate($school_id, $password);
+            // Authenticate user using AuthService
+            $user = $this->authService->login($school_id, $password);
 
             if ($user) {
-                // Start session
-                if (session_status() === PHP_SESSION_NONE) {
-                    session_start();
-                }
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['school_id'] = $user['school_id'];
-                $_SESSION['full_name'] = $user['full_name'];
-                $_SESSION['role'] = $user['role'];
-
                 // Return successful login response
                 http_response_code(200);
                 echo json_encode([
@@ -72,7 +65,9 @@ class AuthController
                         'user_id' => $user['user_id'],
                         'school_id' => $user['school_id'],
                         'full_name' => $user['full_name'],
-                        'role' => $user['role']
+                        'role' => $user['role'],
+                        'year_level' => $user['year_level'] ?? null,
+                        'section' => $user['section'] ?? null
                     ]
                 ]);
             } else {
@@ -151,11 +146,12 @@ class AuthController
      */
     public function requireAuth()
     {
-        if (!$this->checkAuth()) {
-            http_response_code(401);
+        try {
+            $this->authService->requireAuth();
+        } catch (Exception $e) {
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Authentication required.'
+                'message' => $e->getMessage()
             ]);
             exit;
         }
@@ -166,14 +162,12 @@ class AuthController
      */
     public function requireRole($requiredRole)
     {
-        $this->requireAuth();
-        
-        $user = $this->getCurrentUser();
-        if ($user['role'] !== $requiredRole) {
-            http_response_code(403);
+        try {
+            $this->authService->requireRole($requiredRole);
+        } catch (Exception $e) {
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Insufficient permissions.'
+                'message' => $e->getMessage()
             ]);
             exit;
         }

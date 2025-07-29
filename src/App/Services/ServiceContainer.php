@@ -4,6 +4,12 @@ namespace App\Services;
 
 use App\Services\UserService;
 use App\Services\UserServiceImpl;
+use App\Services\ExamService;
+use App\Services\ExamServiceImpl;
+use App\Services\SubjectService;
+use App\Services\SubjectServiceImpl;
+use App\Services\AuthService;
+use App\Services\AuthServiceImpl;
 
 /**
  * ServiceContainer
@@ -103,9 +109,18 @@ class ServiceContainer
         // Register UserService
         $this->register(UserService::class, UserServiceImpl::class, true);
         
-        // You can register other services here as they are created
-        // $this->register(ExamService::class, ExamServiceImpl::class, true);
-        // $this->register(SubjectService::class, SubjectServiceImpl::class, true);
+        // Register ExamService
+        $this->register(ExamService::class, ExamServiceImpl::class, true);
+        
+        // Register SubjectService
+        $this->register(SubjectService::class, SubjectServiceImpl::class, true);
+        
+        // Register AuthService
+        $this->register(AuthService::class, AuthServiceImpl::class, true);
+        
+        // Additional services will be registered here as they are created
+        // $this->register(QuestionService::class, QuestionServiceImpl::class, true);
+        // $this->register(ExamResultService::class, ExamResultServiceImpl::class, true);
     }
 
     /**
