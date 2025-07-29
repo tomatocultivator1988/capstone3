@@ -88,7 +88,7 @@ class QuestionServiceTest extends TestCase
             'correct_answer' => 'answer'
         ];
 
-        $this->mockQuestionModel->method('getQuestionById')->willReturn(['question_id' => 1]);
+        $this->mockQuestionModel->method('findById')->willReturn(['question_id' => 1]);
         $this->mockQuestionModel->method('update')->willReturn(true);
 
         // Act
@@ -101,7 +101,7 @@ class QuestionServiceTest extends TestCase
     public function testUpdateQuestionNotFound()
     {
         // Arrange
-        $this->mockQuestionModel->method('getQuestionById')->willReturn(false);
+        $this->mockQuestionModel->method('findById')->willReturn(false);
 
         // Act
         $result = $this->questionService->updateQuestion(999, []);
@@ -113,7 +113,7 @@ class QuestionServiceTest extends TestCase
     public function testDeleteQuestionSuccess()
     {
         // Arrange
-        $this->mockQuestionModel->method('getQuestionById')->willReturn(['question_id' => 1]);
+        $this->mockQuestionModel->method('findById')->willReturn(['question_id' => 1]);
         $this->mockQuestionModel->method('delete')->willReturn(true);
 
         // Act
@@ -126,7 +126,7 @@ class QuestionServiceTest extends TestCase
     public function testDeleteQuestionNotFound()
     {
         // Arrange
-        $this->mockQuestionModel->method('getQuestionById')->willReturn(false);
+        $this->mockQuestionModel->method('findById')->willReturn(false);
 
         // Act
         $result = $this->questionService->deleteQuestion(999);
@@ -139,7 +139,7 @@ class QuestionServiceTest extends TestCase
     {
         // Arrange
         $questionData = ['question_id' => 1, 'question_text' => 'Test question?'];
-        $this->mockQuestionModel->method('getQuestionById')->willReturn($questionData);
+        $this->mockQuestionModel->method('findById')->willReturn($questionData);
 
         // Act
         $result = $this->questionService->getQuestionById(1);

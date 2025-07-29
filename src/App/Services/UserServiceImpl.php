@@ -47,10 +47,7 @@ class UserServiceImpl implements UserService
                 throw new Exception('User with this school ID already exists');
             }
 
-            // Generate password: school_id + full_name
-            $plainPassword = $school_id . $full_name;
-            $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
-
+            // The User model handles password generation internally
             $userData = [
                 'school_id' => $school_id,
                 'full_name' => $full_name,
