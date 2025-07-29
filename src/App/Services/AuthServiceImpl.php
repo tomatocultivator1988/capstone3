@@ -64,7 +64,7 @@ class AuthServiceImpl implements AuthService
     {
         // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            @session_start();
         }
         
         return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
@@ -78,7 +78,7 @@ class AuthServiceImpl implements AuthService
         try {
             // Start session if not already started
             if (session_status() === PHP_SESSION_NONE) {
-                session_start();
+                @session_start();
             }
             
             if (!$this->isAuthenticated()) {
@@ -141,7 +141,7 @@ class AuthServiceImpl implements AuthService
         try {
             // Start session if not already started
             if (session_status() === PHP_SESSION_NONE) {
-                session_start();
+                @session_start();
             }
             
             $_SESSION['user_id'] = $userData['user_id'];
@@ -167,7 +167,7 @@ class AuthServiceImpl implements AuthService
         try {
             // Start session if not already started (needed to destroy it)
             if (session_status() === PHP_SESSION_NONE) {
-                session_start();
+                @session_start();
             }
             
             // Clear all session variables

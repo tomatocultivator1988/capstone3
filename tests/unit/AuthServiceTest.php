@@ -9,6 +9,16 @@ class AuthServiceTest extends TestCase
     private $mockUserService;
     private $authService;
 
+    /**
+     * Helper method to ensure session is started for tests
+     */
+    private function ensureSessionStarted(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+    }
+
     protected function setUp(): void
     {
         $this->mockUserService = $this->createMock(UserService::class);
@@ -18,6 +28,10 @@ class AuthServiceTest extends TestCase
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_destroy();
         }
+        
+        // Initialize session for tests
+        $this->ensureSessionStarted();
+        
         $_SESSION = [];
     }
 
@@ -68,7 +82,8 @@ class AuthServiceTest extends TestCase
 
     public function testIsAuthenticatedTrue()
     {
-        // Arrange
+        // Arrange - Ensure session is started
+        $this->ensureSessionStarted();
         $_SESSION['user_id'] = 1;
 
         // Act
@@ -89,7 +104,8 @@ class AuthServiceTest extends TestCase
 
     public function testGetCurrentUserWhenAuthenticated()
     {
-        // Arrange
+        // Arrange - Ensure session is started
+        $this->ensureSessionStarted();
         $_SESSION['user_id'] = 1;
         $_SESSION['school_id'] = '2024001';
         $_SESSION['full_name'] = 'John Doe';
@@ -115,7 +131,8 @@ class AuthServiceTest extends TestCase
 
     public function testHasRoleTrue()
     {
-        // Arrange
+        // Arrange - Ensure session is started
+        $this->ensureSessionStarted();
         $_SESSION['user_id'] = 1;
         $_SESSION['role'] = 'admin';
 
@@ -128,7 +145,8 @@ class AuthServiceTest extends TestCase
 
     public function testHasRoleFalse()
     {
-        // Arrange
+        // Arrange - Ensure session is started
+        $this->ensureSessionStarted();
         $_SESSION['user_id'] = 1;
         $_SESSION['role'] = 'student';
 
@@ -141,7 +159,8 @@ class AuthServiceTest extends TestCase
 
     public function testRequireAuthSuccess()
     {
-        // Arrange
+        // Arrange - Ensure session is started
+        $this->ensureSessionStarted();
         $_SESSION['user_id'] = 1;
 
         // Act & Assert - Should not throw exception
@@ -161,7 +180,8 @@ class AuthServiceTest extends TestCase
 
     public function testRequireRoleSuccess()
     {
-        // Arrange
+        // Arrange - Ensure session is started
+        $this->ensureSessionStarted();
         $_SESSION['user_id'] = 1;
         $_SESSION['role'] = 'admin';
 
@@ -172,7 +192,8 @@ class AuthServiceTest extends TestCase
 
     public function testRequireRoleFailureWrongRole()
     {
-        // Arrange
+        // Arrange - Ensure session is started
+        $this->ensureSessionStarted();
         $_SESSION['user_id'] = 1;
         $_SESSION['role'] = 'student';
 
@@ -218,7 +239,8 @@ class AuthServiceTest extends TestCase
 
     public function testLogout()
     {
-        // Arrange
+        // Arrange - Ensure session is started
+        $this->ensureSessionStarted();
         $_SESSION['user_id'] = 1;
         $_SESSION['school_id'] = '2024001';
 
