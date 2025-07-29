@@ -20,11 +20,6 @@ class AuthServiceImpl implements AuthService
     public function __construct(?UserService $userService = null)
     {
         $this->userService = $userService ?? ServiceContainer::getInstance()->get(UserService::class);
-        
-        // Start session if not already started
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
     }
 
     /**
@@ -67,6 +62,11 @@ class AuthServiceImpl implements AuthService
      */
     public function isAuthenticated(): bool
     {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
         return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
     }
 
@@ -76,6 +76,11 @@ class AuthServiceImpl implements AuthService
     public function getCurrentUser()
     {
         try {
+            // Start session if not already started
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
             if (!$this->isAuthenticated()) {
                 return false;
             }
@@ -134,6 +139,11 @@ class AuthServiceImpl implements AuthService
     public function startSession(array $userData): bool
     {
         try {
+            // Start session if not already started
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
             $_SESSION['user_id'] = $userData['user_id'];
             $_SESSION['school_id'] = $userData['school_id'];
             $_SESSION['full_name'] = $userData['full_name'];
@@ -155,6 +165,11 @@ class AuthServiceImpl implements AuthService
     public function destroySession(): bool
     {
         try {
+            // Start session if not already started (needed to destroy it)
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
             // Clear all session variables
             $_SESSION = [];
             

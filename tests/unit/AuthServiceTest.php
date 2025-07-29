@@ -15,12 +15,18 @@ class AuthServiceTest extends TestCase
         $this->authService = new AuthServiceImpl($this->mockUserService);
         
         // Clear session for clean state
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
         $_SESSION = [];
     }
 
     protected function tearDown(): void
     {
         // Clean up session after each test
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
         $_SESSION = [];
     }
 
