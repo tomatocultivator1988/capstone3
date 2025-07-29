@@ -2,22 +2,25 @@
 
 namespace App\Controllers;
 
-use App\Models\ExamResult;
-use App\Controllers\AuthController;
+use App\Services\ExamResultService;
+use App\Services\AuthService;
+use App\Services\ServiceContainer;
+use Exception;
 
 /**
- * TDD Step 120: ExamResult Controller
- * GREEN PHASE: Handle exam results and analytics API requests
+ * ExamResultController
+ * Handle exam results and analytics API requests using ExamResultService
  */
 class ExamResultController
 {
-    private $examResultModel;
-    private $authController;
+    private ExamResultService $examResultService;
+    private AuthService $authService;
 
-    public function __construct()
+    public function __construct(?ExamResultService $examResultService = null, ?AuthService $authService = null)
     {
-        $this->examResultModel = new ExamResult();
-        $this->authController = new AuthController();
+        $container = ServiceContainer::getInstance();
+        $this->examResultService = $examResultService ?? $container->get(ExamResultService::class);
+        $this->authService = $authService ?? $container->get(AuthService::class);
     }
 
     /**

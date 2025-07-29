@@ -2,18 +2,21 @@
 
 namespace App\Controllers;
 
-use App\Models\User;
-use App\Controllers\AuthController;
+use App\Services\UserService;
+use App\Services\AuthService;
+use App\Services\ServiceContainer;
+use Exception;
 
 class UserController
 {
-    private $userModel;
-    private $authController;
+    private UserService $userService;
+    private AuthService $authService;
 
-    public function __construct()
+    public function __construct(?UserService $userService = null, ?AuthService $authService = null)
     {
-        $this->userModel = new User();
-        $this->authController = new AuthController();
+        $container = ServiceContainer::getInstance();
+        $this->userService = $userService ?? $container->get(UserService::class);
+        $this->authService = $authService ?? $container->get(AuthService::class);
     }
 
     /**
@@ -22,20 +25,20 @@ class UserController
     public function index()
     {
         header('Content-Type: application/json');
-        $this->authController->requireRole('admin');
-
+        
         try {
-            $users = $this->userModel->getAllUsers();
+            $this->authService->requireRole('admin');
+            $users = $this->userService->getAllUsers();
             
             echo json_encode([
                 'status' => 'success',
                 'data' => $users
             ]);
         } catch (Exception $e) {
-            http_response_code(500);
+            http_response_code($e->getCode() ?: 500);
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Failed to fetch users.'
+                'message' => $e->getMessage() ?: 'Failed to fetch users.'
             ]);
         }
     }
@@ -46,31 +49,32 @@ class UserController
     public function getUsersByRole()
     {
         header('Content-Type: application/json');
-        $this->authController->requireAuth();
-
-        $role = $_GET['role'] ?? '';
-        
-        if (empty($role)) {
-            http_response_code(400);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Role parameter is required.'
-            ]);
-            return;
-        }
-
         try {
-            $users = $this->userModel->getUsersByRole($role);
+            $this->authService->requireAuth();
+            
+            $role = $_GET['role'] ?? '';
+            
+            if (empty($role)) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Role parameter is required.'
+                ]);
+                return;
+            }
+
+            $users = $this->userService->getUsersByRole($role);
             
             echo json_encode([
                 'status' => 'success',
-                'data' => $users
+                'data' => $users,
+                'count' => count($users)
             ]);
         } catch (Exception $e) {
-            http_response_code(500);
+            http_response_code($e->getCode() ?: 500);
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Failed to fetch users.'
+                'message' => $e->getMessage() ?: 'Failed to fetch users.'
             ]);
         }
     }

@@ -2,18 +2,21 @@
 
 namespace App\Controllers;
 
-use App\Models\Exam;
-use App\Controllers\AuthController;
+use App\Services\ExamService;
+use App\Services\AuthService;
+use App\Services\ServiceContainer;
+use Exception;
 
 class ExamController
 {
-    private $examModel;
-    private $authController;
+    private ExamService $examService;
+    private AuthService $authService;
 
-    public function __construct()
+    public function __construct(?ExamService $examService = null, ?AuthService $authService = null)
     {
-        $this->examModel = new Exam();
-        $this->authController = new AuthController();
+        $container = ServiceContainer::getInstance();
+        $this->examService = $examService ?? $container->get(ExamService::class);
+        $this->authService = $authService ?? $container->get(AuthService::class);
     }
 
     /**
@@ -22,20 +25,20 @@ class ExamController
     public function index()
     {
         header('Content-Type: application/json');
-        $this->authController->requireAuth();
-
+        
         try {
-            $exams = $this->examModel->getAllExams();
+            $this->authService->requireAuth();
+            $exams = $this->examService->getAllExams();
             
             echo json_encode([
                 'status' => 'success',
                 'data' => $exams
             ]);
         } catch (Exception $e) {
-            http_response_code(500);
+            http_response_code($e->getCode() ?: 500);
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Failed to fetch exams'
+                'message' => $e->getMessage() ?: 'Failed to fetch exams'
             ]);
         }
     }

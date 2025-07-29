@@ -2,18 +2,21 @@
 
 namespace App\Controllers;
 
-use App\Models\Subject;
-use App\Controllers\AuthController;
+use App\Services\SubjectService;
+use App\Services\AuthService;
+use App\Services\ServiceContainer;
+use Exception;
 
 class SubjectController
 {
-    private $subjectModel;
-    private $authController;
+    private SubjectService $subjectService;
+    private AuthService $authService;
 
-    public function __construct()
+    public function __construct(?SubjectService $subjectService = null, ?AuthService $authService = null)
     {
-        $this->subjectModel = new Subject();
-        $this->authController = new AuthController();
+        $container = ServiceContainer::getInstance();
+        $this->subjectService = $subjectService ?? $container->get(SubjectService::class);
+        $this->authService = $authService ?? $container->get(AuthService::class);
     }
 
     /**
