@@ -10,6 +10,10 @@ use App\Services\SubjectService;
 use App\Services\SubjectServiceImpl;
 use App\Services\AuthService;
 use App\Services\AuthServiceImpl;
+use App\Services\QuestionService;
+use App\Services\QuestionServiceImpl;
+use App\Services\ExamResultService;
+use App\Services\ExamResultServiceImpl;
 
 /**
  * ServiceContainer
@@ -118,9 +122,11 @@ class ServiceContainer
         // Register AuthService
         $this->register(AuthService::class, AuthServiceImpl::class, true);
         
-        // Additional services will be registered here as they are created
-        // $this->register(QuestionService::class, QuestionServiceImpl::class, true);
-        // $this->register(ExamResultService::class, ExamResultServiceImpl::class, true);
+        // Register QuestionService
+        $this->register(QuestionService::class, QuestionServiceImpl::class, true);
+        
+        // Register ExamResultService
+        $this->register(ExamResultService::class, ExamResultServiceImpl::class, true);
     }
 
     /**

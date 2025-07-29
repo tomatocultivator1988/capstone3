@@ -2,22 +2,25 @@
 
 namespace App\Controllers;
 
-use App\Models\Question;
-use App\Controllers\AuthController;
+use App\Services\QuestionService;
+use App\Services\AuthService;
+use App\Services\ServiceContainer;
+use Exception;
 
 /**
- * TDD Step 119: Question Controller
- * GREEN PHASE: Handle question management API requests
+ * QuestionController
+ * Handle question management API requests using QuestionService
  */
 class QuestionController
 {
-    private $questionModel;
-    private $authController;
+    private QuestionService $questionService;
+    private AuthService $authService;
 
-    public function __construct()
+    public function __construct(?QuestionService $questionService = null, ?AuthService $authService = null)
     {
-        $this->questionModel = new Question();
-        $this->authController = new AuthController();
+        $container = ServiceContainer::getInstance();
+        $this->questionService = $questionService ?? $container->get(QuestionService::class);
+        $this->authService = $authService ?? $container->get(AuthService::class);
     }
 
     /**
