@@ -62,13 +62,7 @@ document.getElementById("loginForm").onsubmit = async function (e) {
     if (result.status === "success") {
       msg.className += " text-green-600";
       setTimeout(() => {
-        if (result.role === "admin") {
-          window.location.href = "/admin/dashboard";
-        } else if (result.role === "faculty") {
-          window.location.href = "/faculty/dashboard";
-        } else {
-          window.location.href = "/student/dashboard";
-        }
+        window.location.href = "dashboard_mvc.php?role=" + result.role;
       }, 1200);
     } else {
       msg.className += " text-red-600";

@@ -116,6 +116,7 @@
 // Load dashboard data
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardStats();
+    setupLogout();
 });
 
 async function loadDashboardStats() {
@@ -163,5 +164,16 @@ function viewSubjects() {
 
 function viewExams() {
     window.location.href = '/exams';
+}
+
+function setupLogout() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/logout.php';
+            }
+        });
+    }
 }
 </script>
