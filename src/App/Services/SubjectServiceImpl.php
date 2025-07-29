@@ -181,4 +181,30 @@ class SubjectServiceImpl implements SubjectService
             return false;
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function assignFacultyToSubject(int $subjectId, int $facultyId): bool
+    {
+        try {
+            return $this->subjectModel->assignFaculty($subjectId, $facultyId);
+        } catch (Exception $e) {
+            error_log("SubjectService::assignFacultyToSubject error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getSubjectsByFaculty(int $facultyId): array
+    {
+        try {
+            return $this->subjectModel->getSubjectsByFaculty($facultyId) ?? [];
+        } catch (Exception $e) {
+            error_log("SubjectService::getSubjectsByFaculty error: " . $e->getMessage());
+            return [];
+        }
+    }
 }

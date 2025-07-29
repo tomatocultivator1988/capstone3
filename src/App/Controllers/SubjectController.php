@@ -25,10 +25,10 @@ class SubjectController
     public function index()
     {
         header('Content-Type: application/json');
-        $this->authController->requireAuth();
+        $this->authService->requireAuth();
 
         try {
-            $subjects = $this->subjectModel->getAllSubjects();
+            $subjects = $this->subjectService->getAllSubjects();
             
             echo json_encode([
                 'status' => 'success',
@@ -49,7 +49,7 @@ class SubjectController
     public function show()
     {
         header('Content-Type: application/json');
-        $this->authController->requireAuth();
+        $this->authService->requireAuth();
 
         $subject_id = $_GET['id'] ?? null;
         
@@ -63,7 +63,7 @@ class SubjectController
         }
 
         try {
-            $subject = $this->subjectModel->findById($subject_id);
+            $subject = $this->subjectService->getSubjectById($subject_id);
             
             if (!$subject) {
                 http_response_code(404);
@@ -93,7 +93,7 @@ class SubjectController
     public function store()
     {
         header('Content-Type: application/json');
-        $this->authController->requireRole(['admin', 'faculty']);
+        $this->authService->requireRole(['admin', 'faculty']);
 
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -110,7 +110,7 @@ class SubjectController
         }
 
         try {
-            $subject_id = $this->subjectModel->create($input);
+            $subject_id = $this->subjectService->createSubject($input);
             
             if ($subject_id) {
                 http_response_code(201);
@@ -141,7 +141,7 @@ class SubjectController
     public function update()
     {
         header('Content-Type: application/json');
-        $this->authController->requireRole(['admin', 'faculty']);
+        $this->authService->requireRole(['admin', 'faculty']);
 
         $subject_id = $_GET['id'] ?? null;
         if (!$subject_id) {
@@ -156,7 +156,7 @@ class SubjectController
         $input = json_decode(file_get_contents('php://input'), true);
 
         try {
-            $success = $this->subjectModel->update($subject_id, $input);
+            $success = $this->subjectService->updateSubject($subject_id, $input);
             
             if ($success) {
                 echo json_encode([
@@ -185,7 +185,7 @@ class SubjectController
     public function delete()
     {
         header('Content-Type: application/json');
-        $this->authController->requireRole('admin');
+        $this->authService->requireRole('admin');
 
         $subject_id = $_GET['id'] ?? null;
         if (!$subject_id) {
@@ -198,7 +198,7 @@ class SubjectController
         }
 
         try {
-            $success = $this->subjectModel->delete($subject_id);
+            $success = $this->subjectService->deleteSubject($subject_id);
             
             if ($success) {
                 echo json_encode([
@@ -227,7 +227,7 @@ class SubjectController
     public function assignFaculty()
     {
         header('Content-Type: application/json');
-        $this->authController->requireRole('admin');
+        $this->authService->requireRole('admin');
 
         $subjectId = $_POST['subject_id'] ?? null;
         $facultyId = $_POST['faculty_id'] ?? null;
@@ -242,7 +242,7 @@ class SubjectController
         }
 
         try {
-            $result = $this->subjectModel->assignFaculty($subjectId, $facultyId);
+            $result = $this->subjectService->assignFacultyToSubject($subjectId, $facultyId);
 
             if ($result) {
                 echo json_encode([
@@ -271,12 +271,12 @@ class SubjectController
     public function getByFaculty()
     {
         header('Content-Type: application/json');
-        $this->authController->requireAuth();
+        $this->authService->requireAuth();
 
         $facultyId = $_GET['faculty_id'] ?? $_SESSION['user_id'];
 
         try {
-            $subjects = $this->subjectModel->getSubjectsByFaculty($facultyId);
+            $subjects = $this->subjectService->getSubjectsByFaculty($facultyId);
             
             echo json_encode([
                 'status' => 'success',

@@ -81,4 +81,21 @@ interface SubjectService
      * @return bool True if name exists, false otherwise
      */
     public function subjectNameExists(string $subjectName, ?int $excludeId = null): bool;
+
+    /**
+     * Assign faculty to subject
+     *
+     * @param int $subjectId The subject ID
+     * @param int $facultyId The faculty ID
+     * @return bool True if successful, false otherwise
+     */
+    public function assignFacultyToSubject(int $subjectId, int $facultyId): bool;
+
+    /**
+     * Get subjects by faculty
+     *
+     * @param int $facultyId The faculty ID
+     * @return array Array of subjects assigned to the faculty
+     */
+    public function getSubjectsByFaculty(int $facultyId): array;
 }
