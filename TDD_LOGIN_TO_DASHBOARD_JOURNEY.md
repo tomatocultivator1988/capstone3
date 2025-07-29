@@ -99,6 +99,22 @@ class ExamLoginImpl
 
 **Result**: ✅ Tests pass - Class now exists and implements expected behavior
 
+### **REFACTOR PHASE: Architectural Decision - Remove ExamLoginImpl**
+
+**Problem Identified**: `ExamLoginImpl` duplicates functionality of `AuthServiceImpl`
+
+**Comparison**:
+- **ExamLoginImpl**: Simple, direct database access, no session management
+- **AuthServiceImpl**: Layered architecture, session management, role checking, extensible
+
+**Decision**: Remove `ExamLoginImpl` in favor of `AuthServiceImpl` for:
+1. **Better Architecture**: Follows service layer pattern
+2. **More Features**: Session management, role checking, etc.
+3. **Consistency**: Matches application's layered architecture
+4. **Maintainability**: Single source of truth for authentication
+
+**Action**: `ExamLoginImpl` is only used in tests, so it can be safely removed
+
 ---
 
 ## 📋 **TDD Cycle 2: Session Management Issues**
@@ -466,12 +482,20 @@ CREATE TABLE `users` (
 3. **Clear Requirements**: Tests serve as living documentation
 4. **Regression Prevention**: Existing functionality protected
 
+### **Architectural Insights**
+
+1. **Avoid Duplicate Functionality**: `ExamLoginImpl` vs `AuthServiceImpl` showed the importance of single responsibility
+2. **Consistent Patterns**: All authentication should follow the same layered architecture
+3. **Service Layer Benefits**: `AuthServiceImpl` provides more features and better maintainability
+4. **Test-Driven Refactoring**: TDD helped identify architectural inconsistencies
+
 ### **Common Pitfalls Avoided**
 
 1. **Session Management**: Proper session lifecycle management
 2. **Property Naming**: Consistent naming conventions
 3. **API Paths**: Correct relative path handling
 4. **Error Handling**: Comprehensive error management
+5. **Duplicate Code**: Identified and removed redundant authentication implementations
 
 ---
 
