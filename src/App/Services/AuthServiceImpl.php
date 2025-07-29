@@ -28,15 +28,21 @@ class AuthServiceImpl implements AuthService
     public function login(string $school_id, string $password)
     {
         try {
+            error_log("AuthService::login - Attempting authentication for: $school_id");
+            
             // Authenticate user
             $user = $this->userService->authenticateUser($school_id, $password);
+            
+            error_log("AuthService::login - UserService result: " . ($user ? 'success' : 'failed'));
             
             if ($user) {
                 // Start session
                 $this->startSession($user);
+                error_log("AuthService::login - Session started successfully");
                 return $user;
             }
             
+            error_log("AuthService::login - Authentication failed");
             return false;
         } catch (Exception $e) {
             error_log("AuthService::login error: " . $e->getMessage());

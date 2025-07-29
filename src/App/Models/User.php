@@ -35,17 +35,27 @@ class User
      */
     public function authenticate($school_id, $password)
     {
+        error_log("User::authenticate - Looking for user: $school_id");
+        
         $user = $this->findBySchoolId($school_id);
         
         if (!$user) {
+            error_log("User::authenticate - User not found: $school_id");
             return false;
         }
 
+        error_log("User::authenticate - User found: " . json_encode($user));
+        error_log("User::authenticate - Password comparison: input='$password', stored='{$user['password']}'");
+
         // Check if password is hashed (starts with $) or plain text
         if (strpos($user['password'], '$') === 0) {
-            return password_verify($password, $user['password']) ? $user : false;
+            $result = password_verify($password, $user['password']);
+            error_log("User::authenticate - Hashed password verification: " . ($result ? 'success' : 'failed'));
+            return $result ? $user : false;
         } else {
-            return $password === $user['password'] ? $user : false;
+            $result = $password === $user['password'];
+            error_log("User::authenticate - Plain text password comparison: " . ($result ? 'success' : 'failed'));
+            return $result ? $user : false;
         }
     }
 

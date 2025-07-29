@@ -185,7 +185,10 @@ class UserServiceImpl implements UserService
     public function authenticateUser(string $school_id, string $password)
     {
         try {
-            return $this->userModel->authenticate($school_id, $password);
+            error_log("UserService::authenticateUser - Attempting authentication for: $school_id");
+            $result = $this->userModel->authenticate($school_id, $password);
+            error_log("UserService::authenticateUser - Result: " . ($result ? 'success' : 'failed'));
+            return $result;
         } catch (Exception $e) {
             error_log("UserService::authenticateUser error: " . $e->getMessage());
             return false;
@@ -228,7 +231,7 @@ class UserServiceImpl implements UserService
         }
 
         // Validate role
-        $validRoles = ['admin', 'teacher', 'student'];
+        $validRoles = ['admin', 'faculty', 'student'];
         if (empty($userData['role'])) {
             $errors[] = 'Role is required';
         } elseif (!in_array($userData['role'], $validRoles)) {
