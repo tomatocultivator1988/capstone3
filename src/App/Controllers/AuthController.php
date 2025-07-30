@@ -41,6 +41,9 @@ class AuthController
             $school_id = $_POST['school_id'] ?? '';
             $password = $_POST['password'] ?? '';
 
+            // Debug logging
+            error_log("Login attempt - School ID: $school_id, Password length: " . strlen($password));
+
             // Validate inputs
             if (empty($school_id) || empty($password)) {
                 http_response_code(400);
@@ -53,6 +56,9 @@ class AuthController
 
             // Authenticate user using AuthService
             $user = $this->authService->login($school_id, $password);
+            
+            // Debug logging
+            error_log("AuthService result: " . ($user ? 'success' : 'failed'));
 
             if ($user) {
                 // Return successful login response

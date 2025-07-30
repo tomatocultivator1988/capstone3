@@ -27,14 +27,21 @@ class UserController
         header('Content-Type: application/json');
         
         try {
+            // Debug logging
+            error_log("UserController::index - Starting...");
+            
             $this->authService->requireRole('admin');
+            error_log("UserController::index - Admin role check passed");
+            
             $users = $this->userService->getAllUsers();
+            error_log("UserController::index - Retrieved " . count($users) . " users");
             
             echo json_encode([
                 'status' => 'success',
                 'data' => $users
             ]);
         } catch (Exception $e) {
+            error_log("UserController::index - Error: " . $e->getMessage());
             http_response_code($e->getCode() ?: 500);
             echo json_encode([
                 'status' => 'error',

@@ -109,5 +109,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => console.error('Error loading students:', error));
+
+    setupLogout();
 });
+
+function setupLogout() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/logout.php';
+            }
+        });
+    }
+}
 </script>

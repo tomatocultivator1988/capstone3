@@ -16,7 +16,7 @@ interface UserService
      *
      * @param string $school_id The unique school identifier
      * @param string $full_name The user's full name
-     * @param string $role The user's role (admin, teacher, student)
+     * @param string $role The user's role (admin, faculty, student)
      * @param int|null $year_level Year level for students
      * @param string|null $section Section for students
      * @return int|false User ID if successful, false otherwise
