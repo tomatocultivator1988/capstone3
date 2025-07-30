@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Repositories\UserRepository;
 use App\Services\UserService;
 use Exception;
 use PDOException;
@@ -15,11 +16,11 @@ use PDOException;
  */
 class UserServiceImpl implements UserService
 {
-    private User $userModel;
+    private UserRepository $userRepository;
 
-    public function __construct(?User $userModel = null)
+    public function __construct(?UserRepository $userRepository = null)
     {
-        $this->userModel = $userModel ?? new User();
+        $this->userRepository = $userRepository ?? new UserRepository();
     }
 
     /**
@@ -47,16 +48,21 @@ class UserServiceImpl implements UserService
                 throw new Exception('User with this school ID already exists');
             }
 
-            // The User model handles password generation internally
-            $userData = [
-                'school_id' => $school_id,
-                'full_name' => $full_name,
-                'role' => $role,
-                'year_level' => $year_level,
-                'section' => $section
-            ];
-            
-            return $this->userModel->create($userData);
+            // Create user model
+            $user = new User();
+            $user->setSchoolId($school_id);
+            $user->setFullName($full_name);
+            $user->setRole($role);
+            $user->setYearLevel($year_level);
+            $user->setSection($section);
+
+            // Generate default password
+            $plainPassword = $school_id . $full_name;
+            $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
+            $user->setPassword($hashedPassword);
+
+            // Create user
+            return $this->userRepository->create($user);
         } catch (Exception $e) {
             error_log("UserService::createUser error: " . $e->getMessage());
             return false;
@@ -94,15 +100,19 @@ class UserServiceImpl implements UserService
                 throw new Exception('Another user with this school ID already exists');
             }
 
-            $userData = [
-                'school_id' => $school_id,
-                'full_name' => $full_name,
-                'role' => $role,
-                'year_level' => $year_level,
-                'section' => $section
-            ];
-            
-            return $this->userModel->update($user_id, $userData);
+            // Get existing user and update it
+            $user = $this->userRepository->findById($user_id);
+            if (!$user) {
+                throw new Exception('User not found');
+            }
+
+            $user->setSchoolId($school_id);
+            $user->setFullName($full_name);
+            $user->setRole($role);
+            $user->setYearLevel($year_level);
+            $user->setSection($section);
+
+            return $this->userRepository->update($user);
         } catch (Exception $e) {
             error_log("UserService::updateUser error: " . $e->getMessage());
             return false;
@@ -120,7 +130,7 @@ class UserServiceImpl implements UserService
                 throw new Exception('User not found');
             }
 
-            return $this->userModel->delete($user_id);
+            return $this->userRepository->delete($user_id);
         } catch (Exception $e) {
             error_log("UserService::deleteUser error: " . $e->getMessage());
             return false;
@@ -133,7 +143,8 @@ class UserServiceImpl implements UserService
     public function getUserById(int $user_id)
     {
         try {
-            return $this->userModel->findById($user_id);
+            $user = $this->userRepository->findById($user_id);
+            return $user ? $user->toArray() : false;
         } catch (Exception $e) {
             error_log("UserService::getUserById error: " . $e->getMessage());
             return false;
@@ -146,7 +157,8 @@ class UserServiceImpl implements UserService
     public function getUserBySchoolId(string $school_id)
     {
         try {
-            return $this->userModel->findBySchoolId($school_id);
+            $user = $this->userRepository->findBySchoolId($school_id);
+            return $user ? $user->toArray() : false;
         } catch (Exception $e) {
             error_log("UserService::getUserBySchoolId error: " . $e->getMessage());
             return false;
@@ -159,7 +171,8 @@ class UserServiceImpl implements UserService
     public function getAllUsers(): array
     {
         try {
-            return $this->userModel->getAllUsers() ?? [];
+            $users = $this->userRepository->getAll();
+            return array_map(fn($user) => $user->toArray(), $users);
         } catch (Exception $e) {
             error_log("UserService::getAllUsers error: " . $e->getMessage());
             return [];
@@ -172,7 +185,8 @@ class UserServiceImpl implements UserService
     public function getUsersByRole(string $role): array
     {
         try {
-            return $this->userModel->getUsersByRole($role) ?? [];
+            $users = $this->userRepository->getByRole($role);
+            return array_map(fn($user) => $user->toArray(), $users);
         } catch (Exception $e) {
             error_log("UserService::getUsersByRole error: " . $e->getMessage());
             return [];
@@ -186,9 +200,28 @@ class UserServiceImpl implements UserService
     {
         try {
             error_log("UserService::authenticateUser - Attempting authentication for: $school_id");
-            $result = $this->userModel->authenticate($school_id, $password);
-            error_log("UserService::authenticateUser - Result: " . ($result ? 'success' : 'failed'));
-            return $result;
+            
+            // Find user by school ID
+            $user = $this->userRepository->findBySchoolId($school_id);
+            
+            if (!$user) {
+                error_log("UserService::authenticateUser - User not found: $school_id");
+                return false;
+            }
+
+            error_log("UserService::authenticateUser - User found: " . json_encode($user->toArray()));
+            error_log("UserService::authenticateUser - Password comparison: input='$password', stored='{$user->getPassword()}'");
+
+            // Check if password is hashed (starts with $) or plain text
+            if (strpos($user->getPassword(), '$') === 0) {
+                $result = password_verify($password, $user->getPassword());
+                error_log("UserService::authenticateUser - Hashed password verification: " . ($result ? 'success' : 'failed'));
+                return $result ? $user->toArray() : false;
+            } else {
+                $result = $password === $user->getPassword();
+                error_log("UserService::authenticateUser - Plain text password comparison: " . ($result ? 'success' : 'failed'));
+                return $result ? $user->toArray() : false;
+            }
         } catch (Exception $e) {
             error_log("UserService::authenticateUser error: " . $e->getMessage());
             return false;
@@ -201,8 +234,7 @@ class UserServiceImpl implements UserService
     public function userExists(string $school_id): bool
     {
         try {
-            $user = $this->getUserBySchoolId($school_id);
-            return $user !== false && $user !== null;
+            return $this->userRepository->existsBySchoolId($school_id);
         } catch (Exception $e) {
             error_log("UserService::userExists error: " . $e->getMessage());
             return false;

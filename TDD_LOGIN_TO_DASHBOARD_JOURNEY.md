@@ -1,23 +1,128 @@
-# TDD Journey: Login to Admin Dashboard
-## From Initial Failures to Working System
+# TDD Journey: Login Implementation to Admin Dashboard
 
-This document chronicles the complete Test-Driven Development (TDD) journey from the initial login authentication issues to a fully functional admin dashboard that displays users and subjects. It demonstrates how TDD principles can transform a broken system into a robust, maintainable application through systematic testing and refactoring.
+## Overview
+This document chronicles the Test-Driven Development (TDD) journey from initial login implementation issues to a fully functional admin dashboard with proper layered architecture.
+
+## 🏗️ **Architecture Refactoring (Latest Update)**
+
+### **Problem Identified**
+The user correctly identified that models were violating the Single Responsibility Principle by containing both data and database operations:
+
+```php
+// ❌ OLD: Models doing too much
+class User {
+    private $db;
+    
+    public function authenticate($school_id, $password) { /* SQL queries */ }
+    public function getAllUsers() { /* SQL queries */ }
+    public function create($data) { /* SQL INSERT */ }
+    // ... more database operations
+}
+```
+
+### **Solution: Proper Layered Architecture**
+Refactored to follow the correct pattern:
+
+```
+Models (Data) → Repositories (Data Access) → Services (Business Logic) → Controllers (HTTP)
+```
+
+### **New Architecture Components**
+
+#### **1. Models (Data Containers)**
+```php
+// ✅ NEW: Simple data containers
+class User {
+    private ?int $user_id = null;
+    private string $school_id = '';
+    private string $full_name = '';
+    // ... other properties
+    
+    // Only getters and setters
+    public function getUserId(): ?int { return $this->user_id; }
+    public function setUserId(?int $user_id): void { $this->user_id = $user_id; }
+    // ... more getters/setters
+    
+    // Simple business logic methods
+    public function isStudent(): bool { return $this->role === 'student'; }
+    public function hasRole(string $role): bool { return $this->role === $role; }
+}
+```
+
+#### **2. Repositories (Data Access Layer)**
+```php
+// ✅ NEW: Handle all database operations
+class UserRepository implements UserRepositoryInterface {
+    private PDO $db;
+    
+    public function findBySchoolId(string $school_id): ?User { /* SQL queries */ }
+    public function getAll(): array { /* SQL queries */ }
+    public function create(User $user): ?int { /* SQL INSERT */ }
+    public function update(User $user): bool { /* SQL UPDATE */ }
+    public function delete(int $user_id): bool { /* SQL DELETE */ }
+}
+```
+
+#### **3. Services (Business Logic)**
+```php
+// ✅ UPDATED: Use repositories instead of models
+class UserServiceImpl implements UserService {
+    private UserRepository $userRepository;
+    
+    public function authenticateUser(string $school_id, string $password) {
+        $user = $this->userRepository->findBySchoolId($school_id);
+        if (!$user) return false;
+        
+        // Business logic for password verification
+        if (strpos($user->getPassword(), '$') === 0) {
+            return password_verify($password, $user->getPassword()) ? $user->toArray() : false;
+        } else {
+            return $password === $user->getPassword() ? $user->toArray() : false;
+        }
+    }
+}
+```
+
+### **Benefits of Refactoring**
+
+1. **✅ Single Responsibility Principle**: Each class has one clear purpose
+2. **✅ Testability**: Each layer can be tested independently
+3. **✅ Maintainability**: Clear separation of concerns
+4. **✅ Extensibility**: Easy to add new features or change implementations
+5. **✅ Dependency Inversion**: Services depend on repository interfaces, not concrete implementations
+
+### **Files Created/Modified**
+
+#### **New Files:**
+- `src/App/Repositories/UserRepository.php` - User data access
+- `src/App/Repositories/SubjectRepository.php` - Subject data access
+- `src/App/Repositories/UserRepositoryInterface.php` - Repository contract
+- `test_refactored_architecture.php` - Architecture verification test
+
+#### **Refactored Files:**
+- `src/App/Models/User.php` - Now simple data container
+- `src/App/Models/Subject.php` - Now simple data container
+- `src/App/Services/UserServiceImpl.php` - Updated to use repositories
+- `src/App/Services/SubjectServiceImpl.php` - Updated to use repositories
+
+### **Testing the Refactored Architecture**
+```bash
+php test_refactored_architecture.php
+```
+
+This test verifies:
+- Models work as data containers
+- Repositories handle database operations
+- Services contain business logic
+- All layers work together correctly
 
 ---
 
-## 🎯 **Overview**
-
-**Problem**: Admin dashboard not showing users and subjects due to authentication and API endpoint issues.
-
-**Solution**: Systematic TDD approach following Red-Green-Refactor cycles to fix each layer of the application.
-
-**Key Achievement**: Transformed a broken authentication system into a robust, working admin dashboard through test-driven development.
-
-**Architecture Decision**: Consolidated duplicate authentication logic (`ExamLoginImpl` vs `AuthServiceImpl`) to maintain single responsibility principle.
+## Previous TDD Journey (Original Content)
 
 ---
 
-## 📋 **TDD Cycle 1: Initial Authentication Issues**
+## 🎯 **TDD Cycle 1: Initial Authentication Issues**
 
 ### **RED PHASE: ExamLoginImpl Class Not Found**
 
