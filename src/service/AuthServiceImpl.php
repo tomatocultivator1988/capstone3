@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace Service\Impl;
 
-use App\Services\UserService;
-use App\Services\AuthService;
-use App\Services\ServiceContainer;
+use Service\UserService;
+use Service\AuthService;
+use Service\ServiceContainer;
 use Exception;
 
 /**

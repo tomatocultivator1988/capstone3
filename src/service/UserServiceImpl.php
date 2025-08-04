@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace Service\Impl;
 
-use App\Models\User;
-use App\Repositories\UserRepository;
-use App\Services\UserService;
+use Model\User;
+use Dao\Impl\UserDAOImpl;
+use Service\UserService;
 use Exception;
 use PDOException;
 
@@ -16,11 +16,11 @@ use PDOException;
  */
 class UserServiceImpl implements UserService
 {
-    private UserRepository $userRepository;
+    private UserDAOImpl $userDAO;
 
-    public function __construct(?UserRepository $userRepository = null)
+    public function __construct(?UserDAOImpl $userDAO = null)
     {
-        $this->userRepository = $userRepository ?? new UserRepository();
+        $this->userDAO = $userDAO ?? new UserDAOImpl();
     }
 
     /**
@@ -62,7 +62,7 @@ class UserServiceImpl implements UserService
             $user->setPassword($hashedPassword);
 
             // Create user
-            return $this->userRepository->create($user);
+            return $this->userDAO->create($user);
         } catch (Exception $e) {
             error_log("UserService::createUser error: " . $e->getMessage());
             return false;
@@ -101,7 +101,7 @@ class UserServiceImpl implements UserService
             }
 
             // Get existing user and update it
-            $user = $this->userRepository->findById($user_id);
+            $user = $this->userDAO->findById($user_id);
             if (!$user) {
                 throw new Exception('User not found');
             }
@@ -112,7 +112,7 @@ class UserServiceImpl implements UserService
             $user->setYearLevel($year_level);
             $user->setSection($section);
 
-            return $this->userRepository->update($user);
+            return $this->userDAO->update($user);
         } catch (Exception $e) {
             error_log("UserService::updateUser error: " . $e->getMessage());
             return false;
@@ -130,7 +130,7 @@ class UserServiceImpl implements UserService
                 throw new Exception('User not found');
             }
 
-            return $this->userRepository->delete($user_id);
+            return $this->userDAO->deleteById($user_id);
         } catch (Exception $e) {
             error_log("UserService::deleteUser error: " . $e->getMessage());
             return false;
@@ -143,7 +143,7 @@ class UserServiceImpl implements UserService
     public function getUserById(int $user_id)
     {
         try {
-            $user = $this->userRepository->findById($user_id);
+            $user = $this->userDAO->findById($user_id);
             return $user ? $user->toArray() : false;
         } catch (Exception $e) {
             error_log("UserService::getUserById error: " . $e->getMessage());
@@ -157,7 +157,7 @@ class UserServiceImpl implements UserService
     public function getUserBySchoolId(string $school_id)
     {
         try {
-            $user = $this->userRepository->findBySchoolId($school_id);
+            $user = $this->userDAO->findBySchoolId($school_id);
             return $user ? $user->toArray() : false;
         } catch (Exception $e) {
             error_log("UserService::getUserBySchoolId error: " . $e->getMessage());
@@ -171,7 +171,7 @@ class UserServiceImpl implements UserService
     public function getAllUsers(): array
     {
         try {
-            $users = $this->userRepository->getAll();
+            $users = $this->userDAO->findAll();
             return array_map(fn($user) => $user->toArray(), $users);
         } catch (Exception $e) {
             error_log("UserService::getAllUsers error: " . $e->getMessage());
@@ -185,7 +185,7 @@ class UserServiceImpl implements UserService
     public function getUsersByRole(string $role): array
     {
         try {
-            $users = $this->userRepository->getByRole($role);
+            $users = $this->userDAO->findByRole($role);
             return array_map(fn($user) => $user->toArray(), $users);
         } catch (Exception $e) {
             error_log("UserService::getUsersByRole error: " . $e->getMessage());
@@ -202,7 +202,7 @@ class UserServiceImpl implements UserService
             error_log("UserService::authenticateUser - Attempting authentication for: $school_id");
             
             // Find user by school ID
-            $user = $this->userRepository->findBySchoolId($school_id);
+            $user = $this->userDAO->findBySchoolId($school_id);
             
             if (!$user) {
                 error_log("UserService::authenticateUser - User not found: $school_id");
@@ -234,7 +234,7 @@ class UserServiceImpl implements UserService
     public function userExists(string $school_id): bool
     {
         try {
-            return $this->userRepository->existsBySchoolId($school_id);
+            return $this->userDAO->existsBySchoolId($school_id);
         } catch (Exception $e) {
             error_log("UserService::userExists error: " . $e->getMessage());
             return false;
