@@ -5,6 +5,8 @@
  * 
  * This file defines all the routes for the Exam Management System
  * using the Controller@method format for proper MVC routing.
+ * 
+ * All routes (including API routes) are handled by the main Router.
  */
 
 return [

@@ -69,7 +69,7 @@ document.getElementById("loginForm").onsubmit = async function (e) {
   submitBtn.innerHTML = "⏳ Logging in...";
 
   try {
-    const response = await fetch("api/auth/login.php", {
+    const response = await fetch("/api/auth/login", {
       method: "POST",
       body: formData,
       credentials: "include"
@@ -85,7 +85,7 @@ document.getElementById("loginForm").onsubmit = async function (e) {
       submitBtn.innerHTML = "✅ Login Successful!";
       
               setTimeout(() => {
-          window.location.href = "dashboard.php?role=" + result.role;
+          window.location.href = "/dashboard?role=" + result.role;
         }, 1200);
     } else {
       msg.className += " text-red-600";

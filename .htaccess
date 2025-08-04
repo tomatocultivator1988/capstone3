@@ -12,12 +12,13 @@ Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-R
 
 # Handle preflight OPTIONS requests
 RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule ^api/ api.php [L]
+RewriteRule ^(.*)$ index.php [L]
 
-# Route all API requests to the single entry point
+# Route ALL requests through the main entry point (index.php)
+# This includes both web pages and API routes
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^api/ api.php [L,QSA]
+RewriteRule ^(.*)$ index.php [L,QSA]
 
 # Deny access to sensitive files and directories
 <Files "composer.json">

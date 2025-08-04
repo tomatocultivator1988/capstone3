@@ -29,7 +29,7 @@ class AuthController
         // If user is already logged in, redirect to dashboard
         if (isset($_SESSION['user_id'])) {
             $role = $_SESSION['role'] ?? 'student';
-            header("Location: dashboard.php?role=" . $role);
+            header("Location: /dashboard?role=" . $role);
             exit;
         }
 
@@ -116,7 +116,7 @@ class AuthController
         $this->authService->destroySession();
 
         // Redirect to login page
-        header("Location: login.php");
+        header("Location: /login");
         exit;
     }
 
@@ -127,7 +127,7 @@ class AuthController
     {
         session_start();
         if (!$this->authService->isAuthenticated()) {
-            header("Location: login.php");
+            header("Location: /login");
             exit;
         }
     }

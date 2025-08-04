@@ -104,7 +104,7 @@ class DashboardController
     {
         session_start();
         if (!$this->authService->isAuthenticated()) {
-            header("Location: login.php");
+            header("Location: /login");
             exit;
         }
     }
