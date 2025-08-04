@@ -43,8 +43,20 @@ class AuthServiceImpl implements AuthService
                 return null;
             }
 
-            // Verify password
-            if (password_verify($password, $user->getPassword())) {
+            // Verify password (handle both hashed and plain text for migration)
+            $storedPassword = $user->getPassword();
+            $passwordValid = false;
+            
+            // Check if password is hashed (starts with $2y$)
+            if (strpos($storedPassword, '$2y$') === 0) {
+                // Password is hashed, use password_verify
+                $passwordValid = password_verify($password, $storedPassword);
+            } else {
+                // Password is plain text (for migration purposes)
+                $passwordValid = ($password === $storedPassword);
+            }
+            
+            if ($passwordValid) {
                 // Start session
                 $this->startSession($user);
                 error_log("AuthService::login - Session started successfully");
