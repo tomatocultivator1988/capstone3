@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../BaseTest.php';
 
 use Dao\Impl\UserDAOImpl;
 use Model\User;
-use Config\Database;
+use App\Config\Database;
 
 class UserDAOImplTest extends BaseTest
 {

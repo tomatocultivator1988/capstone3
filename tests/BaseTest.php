@@ -9,7 +9,9 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-abstract class BaseTest
+use PHPUnit\Framework\TestCase;
+
+abstract class BaseTest extends TestCase
 {
     /**
      * Setup method called before each test
