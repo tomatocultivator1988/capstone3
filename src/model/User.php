@@ -11,10 +11,10 @@ namespace Model;
 class User
 {
     private ?int $user_id = null;
-    private string $school_id = '';
-    private string $full_name = '';
-    private string $password = '';
-    private string $role = '';
+    private ?string $school_id = null;
+    private ?string $full_name = null;
+    private ?string $password = null;
+    private ?string $role = null;
     private ?int $year_level = null;
     private ?string $section = null;
     private ?string $created_at = null;

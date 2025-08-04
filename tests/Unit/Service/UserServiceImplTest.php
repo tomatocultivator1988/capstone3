@@ -355,7 +355,7 @@ class UserServiceImplTest extends BaseTest
         $errors = $this->userService->validateUserData($invalidData);
 
         // Assert
-        $this->assertContains('Full name must be at least 2 characters', $errors);
+        $this->assertContains('Full name must be at least 2 characters long', $errors);
     }
 
     public function testValidateUserData_WithInvalidRole_ShouldReturnError(): void

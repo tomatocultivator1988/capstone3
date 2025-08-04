@@ -268,7 +268,7 @@ class UserServiceImpl implements UserService
         if (empty($userData['role'])) {
             $errors[] = 'Role is required';
         } elseif (!in_array($userData['role'], $validRoles)) {
-            $errors[] = 'Role must be one of: ' . implode(', ', $validRoles);
+            $errors[] = 'Invalid role. Must be admin, faculty, or student';
         }
 
         // Validate student-specific fields
@@ -285,5 +285,79 @@ class UserServiceImpl implements UserService
         }
 
         return $errors;
+    }
+
+    /**
+     * Reset user password to default
+     */
+    public function resetPassword(int $user_id): bool
+    {
+        try {
+            // Get user
+            $user = $this->userDAO->findById($user_id);
+            if (!$user) {
+                return false;
+            }
+
+            // Generate default password (school_id + full_name)
+            $defaultPassword = $user->getSchoolId() . $user->getFullName();
+            $hashedPassword = password_hash($defaultPassword, PASSWORD_DEFAULT);
+
+            // Update password
+            return $this->userDAO->updatePassword($user_id, $hashedPassword);
+        } catch (Exception $e) {
+            error_log("UserService::resetPassword error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get user statistics
+     */
+    public function getUserStatistics(): array
+    {
+        try {
+            $allUsers = $this->userDAO->findAll();
+            
+            $stats = [
+                'total' => count($allUsers),
+                'admin' => 0,
+                'faculty' => 0,
+                'student' => 0
+            ];
+
+            foreach ($allUsers as $user) {
+                switch ($user->getRole()) {
+                    case 'admin':
+                        $stats['admin']++;
+                        break;
+                    case 'faculty':
+                        $stats['faculty']++;
+                        break;
+                    case 'student':
+                        $stats['student']++;
+                        break;
+                }
+            }
+
+            return $stats;
+        } catch (Exception $e) {
+            error_log("UserService::getUserStatistics error: " . $e->getMessage());
+            return ['total' => 0, 'admin' => 0, 'faculty' => 0, 'student' => 0];
+        }
+    }
+
+    /**
+     * Get users with pagination
+     */
+    public function getUsersWithPagination(int $page, int $limit): array
+    {
+        try {
+            $offset = ($page - 1) * $limit;
+            return $this->userDAO->findWithPagination($limit, $offset);
+        } catch (Exception $e) {
+            error_log("UserService::getUsersWithPagination error: " . $e->getMessage());
+            return [];
+        }
     }
 }
