@@ -98,6 +98,11 @@ class UserDAOImpl implements UserDAOInterface
     public function create(User $user): bool
     {
         try {
+            // Validate required fields
+            if (empty($user->getSchoolId()) || empty($user->getFullName()) || empty($user->getPassword()) || empty($user->getRole())) {
+                return false;
+            }
+            
             $sql = "INSERT INTO {$this->table} (school_id, full_name, password, role, year_level, section, created_at) 
                     VALUES (?, ?, ?, ?, ?, ?, NOW())";
             
@@ -135,7 +140,7 @@ class UserDAOImpl implements UserDAOInterface
                     WHERE user_id = ?";
             
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
+            $stmt->execute([
                 $user->getSchoolId(),
                 $user->getFullName(),
                 $user->getRole(),
@@ -143,6 +148,9 @@ class UserDAOImpl implements UserDAOInterface
                 $user->getSection(),
                 $user->getUserId()
             ]);
+            
+            // Check if any rows were actually updated
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             error_log("UserDAOImpl::update error: " . $e->getMessage());
             return false;
@@ -156,7 +164,10 @@ class UserDAOImpl implements UserDAOInterface
     {
         try {
             $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ?");
-            return $stmt->execute([$user_id]);
+            $stmt->execute([$user_id]);
+            
+            // Check if any rows were actually deleted
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             error_log("UserDAOImpl::deleteById error: " . $e->getMessage());
             return false;
@@ -234,7 +245,10 @@ class UserDAOImpl implements UserDAOInterface
     {
         try {
             $stmt = $this->db->prepare("UPDATE {$this->table} SET password = ?, updated_at = NOW() WHERE user_id = ?");
-            return $stmt->execute([$hashedPassword, $user_id]);
+            $stmt->execute([$hashedPassword, $user_id]);
+            
+            // Check if any rows were actually updated
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             error_log("UserDAOImpl::updatePassword error: " . $e->getMessage());
             return false;
