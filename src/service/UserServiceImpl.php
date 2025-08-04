@@ -147,11 +147,11 @@ class UserServiceImpl implements UserService
     /**
      * {@inheritdoc}
      */
-    public function getUserById(int $user_id)
+    public function getUserById(int $user_id, bool $includePassword = false)
     {
         try {
             $user = $this->userDAO->findById($user_id);
-            return $user ? $user->toArray() : false;
+            return $user ? $user->toArray($includePassword) : false;
         } catch (Exception $e) {
             error_log("UserService::getUserById error: " . $e->getMessage());
             return false;
@@ -364,7 +364,8 @@ class UserServiceImpl implements UserService
     {
         try {
             $offset = ($page - 1) * $limit;
-            return $this->userDAO->findWithPagination($limit, $offset);
+            $users = $this->userDAO->findWithPagination($limit, $offset);
+            return array_map(fn($user) => $user->toArray(), $users);
         } catch (Exception $e) {
             error_log("UserService::getUsersWithPagination error: " . $e->getMessage());
             return [];

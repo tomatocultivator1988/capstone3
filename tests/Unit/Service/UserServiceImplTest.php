@@ -514,7 +514,7 @@ class UserServiceImplTest extends BaseTest
         $this->assertTrue($result, "Password reset should succeed");
         
         // Verify password was changed (would be hashed in real implementation)
-        $updatedUser = $this->userService->getUserById(1);
+        $updatedUser = $this->userService->getUserById(1, true); // Include password
         $this->assertNotEquals('oldpassword', $updatedUser['password'], "Password should be changed");
     }
 
