@@ -2,19 +2,21 @@
 
 namespace App\Controller;
 
-use Service\Impl\AuthServiceImpl;
-use Dao\Impl\UserDAOImpl;
+use Service\ServiceContainer;
 use App\Core\View;
 
 class DashboardController
 {
     private $authService;
+    private $userService;
     private $view;
 
     public function __construct()
     {
-        $userDAO = new UserDAOImpl();
-        $this->authService = new AuthServiceImpl($userDAO);
+        // Controllers use ServiceContainer to get Services
+        $serviceContainer = ServiceContainer::getInstance();
+        $this->authService = $serviceContainer->getAuthService();
+        $this->userService = $serviceContainer->getUserService();
         $this->view = new View();
     }
 
@@ -23,7 +25,7 @@ class DashboardController
      */
     public function showDashboard()
     {
-        // Check authentication
+        // Check authentication using Service
         $this->requireAuth();
 
         $role = $_SESSION['role'] ?? 'student';
@@ -51,6 +53,9 @@ class DashboardController
      */
     private function showAdminDashboard($userName, $role)
     {
+        // Get dashboard data using Services
+        $userStats = $this->userService->getUserStatistics();
+        
         $this->view->display('dashboard.admin', [
             'title' => 'Admin Dashboard - Exam Management System',
             'layout' => 'main',
@@ -59,7 +64,8 @@ class DashboardController
             'headerTitle' => 'Admin Dashboard',
             'headerSubtitle' => "Welcome back, $userName",
             'userName' => $userName,
-            'role' => $role
+            'role' => $role,
+            'userStats' => $userStats
         ]);
     }
 
@@ -98,7 +104,7 @@ class DashboardController
     }
 
     /**
-     * Check if user is authenticated
+     * Check if user is authenticated using Service
      */
     private function requireAuth()
     {

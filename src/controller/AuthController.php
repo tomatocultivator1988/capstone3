@@ -2,19 +2,21 @@
 
 namespace App\Controller;
 
-use Service\Impl\AuthServiceImpl;
-use Dao\Impl\UserDAOImpl;
+use Service\ServiceContainer;
 use App\Core\View;
 
 class AuthController
 {
     private $authService;
+    private $userService;
     private $view;
 
     public function __construct()
     {
-        $userDAO = new UserDAOImpl();
-        $this->authService = new AuthServiceImpl($userDAO);
+        // Controllers use ServiceContainer to get Services
+        $serviceContainer = ServiceContainer::getInstance();
+        $this->authService = $serviceContainer->getAuthService();
+        $this->userService = $serviceContainer->getUserService();
         $this->view = new View();
     }
 
@@ -72,7 +74,7 @@ class AuthController
                 return;
             }
 
-            // Attempt login using service
+            // Use Service for authentication (Controller doesn't know about DAOs)
             $user = $this->authService->login($school_id, $password);
 
             if ($user) {
@@ -112,7 +114,7 @@ class AuthController
         // Start session
         session_start();
 
-        // Clear session
+        // Use Service for logout (Controller doesn't know about DAOs)
         $this->authService->destroySession();
 
         // Redirect to login page
