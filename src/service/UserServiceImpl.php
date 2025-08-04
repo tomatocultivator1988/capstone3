@@ -3,6 +3,7 @@
 namespace Service\Impl;
 
 use Model\User;
+use Dao\Interface\UserDAOInterface;
 use Dao\Impl\UserDAOImpl;
 use Service\UserService;
 use Exception;
@@ -16,9 +17,9 @@ use PDOException;
  */
 class UserServiceImpl implements UserService
 {
-    private UserDAOImpl $userDAO;
+    private UserDAOInterface $userDAO;
 
-    public function __construct(?UserDAOImpl $userDAO = null)
+    public function __construct(?UserDAOInterface $userDAO = null)
     {
         $this->userDAO = $userDAO ?? new UserDAOImpl();
     }

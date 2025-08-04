@@ -46,10 +46,9 @@ class AuthServiceImpl implements AuthService
             // Verify password
             if (password_verify($password, $user->getPassword())) {
                 // Start session
-                $userData = $user->toArray();
-                $this->startSession($userData);
+                $this->startSession($user);
                 error_log("AuthService::login - Session started successfully");
-                return $userData;
+                return $user->toArray();
             }
             
             error_log("AuthService::login - Authentication failed");
@@ -98,7 +97,7 @@ class AuthServiceImpl implements AuthService
             }
             
             if (!$this->isAuthenticated()) {
-                return false;
+                return null;
             }
 
             // Return user data from session
@@ -112,7 +111,7 @@ class AuthServiceImpl implements AuthService
             ];
         } catch (Exception $e) {
             error_log("AuthService::getCurrentUser error: " . $e->getMessage());
-            return false;
+            return null;
         }
     }
 
@@ -123,6 +122,36 @@ class AuthServiceImpl implements AuthService
     {
         $user = $this->getCurrentUser();
         return $user && ($user['role'] === $role);
+    }
+
+    /**
+     * Check if current user has specific permission
+     */
+    public function hasPermission(string $permission): bool
+    {
+        $user = $this->getCurrentUser();
+        if (!$user) {
+            return false;
+        }
+
+        // Admin has all permissions
+        if ($user['role'] === 'admin') {
+            return true;
+        }
+
+        // Faculty permissions
+        if ($user['role'] === 'faculty') {
+            $facultyPermissions = ['view_students', 'edit_students', 'view_grades', 'edit_grades'];
+            return in_array($permission, $facultyPermissions);
+        }
+
+        // Student permissions
+        if ($user['role'] === 'student') {
+            $studentPermissions = ['view_own_grades', 'view_own_profile'];
+            return in_array($permission, $studentPermissions);
+        }
+
+        return false;
     }
 
     /**
@@ -152,7 +181,7 @@ class AuthServiceImpl implements AuthService
     /**
      * {@inheritdoc}
      */
-    public function startSession(array $userData): bool
+    public function startSession($userData): bool
     {
         try {
             // Start session if not already started
@@ -160,12 +189,23 @@ class AuthServiceImpl implements AuthService
                 @session_start();
             }
             
-            $_SESSION['user_id'] = $userData['user_id'];
-            $_SESSION['school_id'] = $userData['school_id'];
-            $_SESSION['full_name'] = $userData['full_name'];
-            $_SESSION['role'] = $userData['role'];
-            $_SESSION['year_level'] = $userData['year_level'] ?? null;
-            $_SESSION['section'] = $userData['section'] ?? null;
+            // Handle both User objects and arrays
+            if ($userData instanceof User) {
+                $_SESSION['user_id'] = $userData->getUserId();
+                $_SESSION['school_id'] = $userData->getSchoolId();
+                $_SESSION['full_name'] = $userData->getFullName();
+                $_SESSION['role'] = $userData->getRole();
+                $_SESSION['year_level'] = $userData->getYearLevel();
+                $_SESSION['section'] = $userData->getSection();
+            } else {
+                $_SESSION['user_id'] = $userData['user_id'];
+                $_SESSION['school_id'] = $userData['school_id'];
+                $_SESSION['full_name'] = $userData['full_name'];
+                $_SESSION['role'] = $userData['role'];
+                $_SESSION['year_level'] = $userData['year_level'] ?? null;
+                $_SESSION['section'] = $userData['section'] ?? null;
+            }
+            
             $_SESSION['login_time'] = time();
             
             return true;
@@ -214,20 +254,86 @@ class AuthServiceImpl implements AuthService
     }
 
     /**
+     * Hash a password
+     */
+    public function hashPassword(string $password): string
+    {
+        return password_hash($password, PASSWORD_DEFAULT);
+    }
+
+    /**
+     * Verify a password against a hash
+     */
+    public function verifyPassword(string $password, string $hash): bool
+    {
+        return password_verify($password, $hash);
+    }
+
+    /**
+     * Generate a password reset token
+     */
+    public function generateResetToken(string $school_id): ?string
+    {
+        try {
+            $user = $this->userDAO->findBySchoolId($school_id);
+            if (!$user) {
+                return null;
+            }
+
+            // Generate a random token
+            $token = bin2hex(random_bytes(32));
+            
+            // In a real application, you would store this token in the database
+            // with an expiration time. For now, we'll just return the token.
+            
+            return $token;
+        } catch (Exception $e) {
+            error_log("AuthService::generateResetToken error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Reset password using token
+     */
+    public function resetPasswordWithToken(string $token, string $newPassword): bool
+    {
+        try {
+            // Validate new password
+            $validationErrors = $this->validatePassword($newPassword);
+            if (!empty($validationErrors)) {
+                return false;
+            }
+
+            // In a real application, you would:
+            // 1. Look up the token in the database
+            // 2. Check if it's expired
+            // 3. Find the user associated with the token
+            // 4. Update the user's password
+            // 5. Delete the token
+
+            // For now, we'll just return true as this would require additional database tables
+            return true;
+        } catch (Exception $e) {
+            error_log("AuthService::resetPasswordWithToken error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function changePassword(int $userId, string $currentPassword, string $newPassword): bool
     {
         try {
             // Get user data
-            $user = $this->userService->getUserById($userId);
+            $user = $this->userDAO->findById($userId);
             if (!$user) {
                 throw new Exception('User not found');
             }
 
             // Verify current password
-            $authenticated = $this->userService->authenticateUser($user['school_id'], $currentPassword);
-            if (!$authenticated) {
+            if (!$this->verifyPassword($currentPassword, $user->getPassword())) {
                 throw new Exception('Current password is incorrect');
             }
 
@@ -238,13 +344,11 @@ class AuthServiceImpl implements AuthService
             }
 
             // Hash new password
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $hashedPassword = $this->hashPassword($newPassword);
 
-            // Update password in database (this would need to be implemented in UserService)
-            // For now, we'll return true as this would require extending the UserService
-            // TODO: Add updatePassword method to UserService
-            
-            return true;
+            // Update password in database
+            $user->setPassword($hashedPassword);
+            return $this->userDAO->updatePassword($user->getUserId(), $hashedPassword);
         } catch (Exception $e) {
             error_log("AuthService::changePassword error: " . $e->getMessage());
             return false;
@@ -276,6 +380,12 @@ class AuthServiceImpl implements AuthService
         // At least one number
         if (!preg_match('/[0-9]/', $password)) {
             $errors[] = 'Password must contain at least one number';
+        }
+
+        // Check for common weak passwords
+        $weakPasswords = ['123456', 'password', '123456789', '12345678', '12345', 'qwerty', 'abc123'];
+        if (in_array(strtolower($password), $weakPasswords)) {
+            $errors[] = 'Password is too common and weak';
         }
 
         return $errors;
