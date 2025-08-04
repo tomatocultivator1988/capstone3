@@ -5,6 +5,8 @@
             "Controller\\": "src/controller/",
             "Service\\": "src/service/",
             "Dao\\": "src/dao/",
+            "Dao\\Impl\\": "src/dao/impl/",
+            "Dao\\Interface\\": "src/dao/interface/",
             "Model\\": "src/model/",
             "Config\\": "src/config/"
         }

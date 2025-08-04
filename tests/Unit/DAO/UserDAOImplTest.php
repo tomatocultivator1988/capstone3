@@ -8,6 +8,10 @@
  */
 
 require_once __DIR__ . '/../../BaseTest.php';
+require_once __DIR__ . '/../../../src/dao/interface/UserDAOInterface.php';
+require_once __DIR__ . '/../../../src/dao/impl/UserDAOImpl.php';
+require_once __DIR__ . '/../../../src/model/User.php';
+require_once __DIR__ . '/../../../src/config/Database.php';
 
 use Dao\Impl\UserDAOImpl;
 use Model\User;
