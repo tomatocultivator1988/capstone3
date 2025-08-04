@@ -9,6 +9,7 @@
 
 require_once __DIR__ . '/../../BaseTest.php';
 require_once __DIR__ . '/../../../src/dao/interface/UserDAOInterface.php';
+require_once __DIR__ . '/../../../src/service/UserService.php';
 require_once __DIR__ . '/../../../src/service/UserServiceImpl.php';
 require_once __DIR__ . '/../../../src/model/User.php';
 
