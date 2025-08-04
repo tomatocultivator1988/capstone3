@@ -1,8 +1,8 @@
 <?php
 /**
- * Logout Entry Point
+ * Login Page Entry Point
  * 
- * This file serves as the entry point for logout functionality.
+ * This file serves as the entry point for the login page.
  * It delegates to the AuthController to handle the request.
  */
 
@@ -13,6 +13,6 @@ use App\Controller\AuthController;
 // Create controller instance
 $authController = new AuthController();
 
-// Handle logout
-$authController->logout();
+// Show login page
+$authController->showLogin();
 ?>

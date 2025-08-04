@@ -3,20 +3,19 @@
  * Exam Management System - Main Entry Point
  * 
  * This file serves as the main entry point for the Exam Management System.
- * It redirects users to the appropriate page based on their authentication status.
+ * It uses the Router to handle all requests and delegates to appropriate Controllers.
  */
 
-// Start session
-session_start();
+require_once __DIR__ . '/../vendor/autoload.php';
 
-// Check if user is already logged in
-if (isset($_SESSION['user_id'])) {
-    $role = $_SESSION['role'] ?? 'student';
-    header("Location: dashboard_mvc.php?role=" . $role);
-    exit;
-}
+use App\Core\Router;
 
-// If not logged in, redirect to login page
-header("Location: login_mvc.php");
-exit;
+// Create router instance
+$router = new Router();
+
+// Load routes from configuration
+$router->loadRoutes(__DIR__ . '/../src/config/routes.php');
+
+// Handle the request
+$router->handleRequest();
 ?>

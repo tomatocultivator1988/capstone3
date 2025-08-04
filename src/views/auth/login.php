@@ -84,9 +84,9 @@ document.getElementById("loginForm").onsubmit = async function (e) {
       msg.className += " text-green-600";
       submitBtn.innerHTML = "✅ Login Successful!";
       
-      setTimeout(() => {
-        window.location.href = "dashboard_mvc.php?role=" + result.role;
-      }, 1200);
+              setTimeout(() => {
+          window.location.href = "dashboard.php?role=" + result.role;
+        }, 1200);
     } else {
       msg.className += " text-red-600";
       submitBtn.disabled = false;

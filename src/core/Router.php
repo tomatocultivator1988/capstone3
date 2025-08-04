@@ -95,4 +95,20 @@ class Router
     {
         return $this->routes;
     }
+
+    /**
+     * Load routes from a configuration file
+     */
+    public function loadRoutes($routesFile)
+    {
+        if (file_exists($routesFile)) {
+            $routes = require $routesFile;
+            foreach ($routes as $method => $routeList) {
+                foreach ($routeList as $path => $callback) {
+                    $this->routes[$method][$path] = $callback;
+                }
+            }
+        }
+    }
 }
+?>

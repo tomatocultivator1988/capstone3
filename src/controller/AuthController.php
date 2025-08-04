@@ -1,22 +1,47 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controller;
 
-use App\Services\AuthService;
-use App\Services\ServiceContainer;
-use Exception;
+use Service\Impl\AuthServiceImpl;
+use Dao\Impl\UserDAOImpl;
+use App\Core\View;
 
 class AuthController
 {
-    private AuthService $authService;
+    private $authService;
+    private $view;
 
-    public function __construct(?AuthService $authService = null)
+    public function __construct()
     {
-        $this->authService = $authService ?? ServiceContainer::getInstance()->get(AuthService::class);
+        $userDAO = new UserDAOImpl();
+        $this->authService = new AuthServiceImpl($userDAO);
+        $this->view = new View();
     }
 
     /**
-     * Handle login request
+     * Display login page
+     */
+    public function showLogin()
+    {
+        // Start session
+        session_start();
+
+        // If user is already logged in, redirect to dashboard
+        if (isset($_SESSION['user_id'])) {
+            $role = $_SESSION['role'] ?? 'student';
+            header("Location: dashboard.php?role=" . $role);
+            exit;
+        }
+
+        // Display login page
+        $this->view->display('auth.login', [
+            'title' => 'Login - Exam Management System',
+            'layout' => 'main'
+        ]);
+    }
+
+    /**
+     * Handle login form submission
      */
     public function login()
     {
@@ -29,10 +54,7 @@ class AuthController
         // Only accept POST requests
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Invalid request method.'
-            ]);
+            echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
             return;
         }
 
@@ -41,124 +63,71 @@ class AuthController
             $school_id = $_POST['school_id'] ?? '';
             $password = $_POST['password'] ?? '';
 
-            // Debug logging
-            error_log("Login attempt - School ID: $school_id, Password length: " . strlen($password));
-
-            // Validate inputs
+            // Validate input
             if (empty($school_id) || empty($password)) {
-                http_response_code(400);
                 echo json_encode([
-                    'status' => 'fail',
-                    'message' => 'Both School ID and password are required.'
+                    'status' => 'error',
+                    'message' => 'School ID and password are required'
                 ]);
                 return;
             }
 
-            // Authenticate user using AuthService
+            // Attempt login using service
             $user = $this->authService->login($school_id, $password);
-            
-            // Debug logging
-            error_log("AuthService result: " . ($user ? 'success' : 'failed'));
 
             if ($user) {
-                // Return successful login response
-                http_response_code(200);
+                // Login successful
                 echo json_encode([
                     'status' => 'success',
-                    'message' => 'Login successful!',
+                    'message' => 'Login successful',
                     'role' => $user['role'],
                     'user' => [
-                        'user_id' => $user['user_id'],
                         'school_id' => $user['school_id'],
                         'full_name' => $user['full_name'],
-                        'role' => $user['role'],
-                        'year_level' => $user['year_level'] ?? null,
-                        'section' => $user['section'] ?? null
+                        'role' => $user['role']
                     ]
                 ]);
             } else {
-                // Return error message if credentials are incorrect
-                http_response_code(401);
+                // Login failed
                 echo json_encode([
-                    'status' => 'fail',
-                    'message' => 'Invalid School ID or password.'
+                    'status' => 'error',
+                    'message' => 'Invalid school ID or password'
                 ]);
             }
+
         } catch (Exception $e) {
-            // Handle any unexpected errors
-            http_response_code(500);
+            error_log("Login error: " . $e->getMessage());
             echo json_encode([
                 'status' => 'error',
-                'message' => 'An error occurred during login.'
+                'message' => 'An error occurred during login'
             ]);
         }
     }
 
     /**
-     * Handle logout request
+     * Handle logout
      */
     public function logout()
     {
-        header('Content-Type: application/json');
+        // Start session
+        session_start();
 
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // Clear session
+        $this->authService->destroySession();
 
-        // Destroy session
-        session_destroy();
-
-        echo json_encode([
-            'status' => 'success',
-            'message' => 'Logged out successfully.'
-        ]);
+        // Redirect to login page
+        header("Location: login.php");
+        exit;
     }
 
     /**
      * Check if user is authenticated
      */
-    public function checkAuth()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        return isset($_SESSION['user_id']);
-    }
-
-    /**
-     * Get current user data
-     */
-    public function getCurrentUser()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        if (!$this->checkAuth()) {
-            return null;
-        }
-
-        return [
-            'user_id' => $_SESSION['user_id'],
-            'school_id' => $_SESSION['school_id'],
-            'full_name' => $_SESSION['full_name'],
-            'role' => $_SESSION['role']
-        ];
-    }
-
-    /**
-     * Require authentication middleware
-     */
     public function requireAuth()
     {
-        try {
-            $this->authService->requireAuth();
-        } catch (Exception $e) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ]);
+        session_start();
+        if (!$this->authService->isAuthenticated()) {
+            header("Location: login.php");
             exit;
         }
     }
@@ -166,16 +135,18 @@ class AuthController
     /**
      * Require specific role
      */
-    public function requireRole($requiredRole)
+    public function requireRole($required_role)
     {
-        try {
-            $this->authService->requireRole($requiredRole);
-        } catch (Exception $e) {
+        $this->requireAuth();
+        
+        if (!$this->authService->hasRole($required_role)) {
+            http_response_code(403);
             echo json_encode([
                 'status' => 'error',
-                'message' => $e->getMessage()
+                'message' => 'Insufficient permissions'
             ]);
             exit;
         }
     }
 }
+?>

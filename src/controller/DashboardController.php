@@ -1,95 +1,112 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controller;
 
-use App\Controllers\AuthController;
+use Service\Impl\AuthServiceImpl;
+use Dao\Impl\UserDAOImpl;
 use App\Core\View;
 
 class DashboardController
 {
-    private $authController;
+    private $authService;
     private $view;
 
     public function __construct()
     {
-        $this->authController = new AuthController();
+        $userDAO = new UserDAOImpl();
+        $this->authService = new AuthServiceImpl($userDAO);
         $this->view = new View();
+    }
+
+    /**
+     * Display dashboard based on user role
+     */
+    public function showDashboard()
+    {
+        // Check authentication
+        $this->requireAuth();
+
+        $role = $_SESSION['role'] ?? 'student';
+        $userName = $_SESSION['full_name'] ?? 'User';
+
+        // Display appropriate dashboard based on role
+        switch ($role) {
+            case 'admin':
+                $this->showAdminDashboard($userName, $role);
+                break;
+                
+            case 'faculty':
+                $this->showFacultyDashboard($userName, $role);
+                break;
+                
+            case 'student':
+            default:
+                $this->showStudentDashboard($userName, $role);
+                break;
+        }
     }
 
     /**
      * Show admin dashboard
      */
-    public function admin()
+    private function showAdminDashboard($userName, $role)
     {
-        $this->authController->requireRole('admin');
-        
         $this->view->display('dashboard.admin', [
-            'title' => 'Admin Dashboard - Examination System',
+            'title' => 'Admin Dashboard - Exam Management System',
             'layout' => 'main',
             'showHeader' => true,
             'showLogout' => true,
             'headerTitle' => 'Admin Dashboard',
-            'headerSubtitle' => 'Manage users, subjects, and exams'
+            'headerSubtitle' => "Welcome back, $userName",
+            'userName' => $userName,
+            'role' => $role
         ]);
     }
 
     /**
      * Show faculty dashboard
      */
-    public function faculty()
+    private function showFacultyDashboard($userName, $role)
     {
-        $this->authController->requireRole('faculty');
-        
         $this->view->display('dashboard.faculty', [
-            'title' => 'Faculty Dashboard - Examination System',
+            'title' => 'Faculty Dashboard - Exam Management System',
             'layout' => 'main',
             'showHeader' => true,
             'showLogout' => true,
             'headerTitle' => 'Faculty Dashboard',
-            'headerSubtitle' => 'Manage your subjects and exams'
+            'headerSubtitle' => "Welcome back, $userName",
+            'userName' => $userName,
+            'role' => $role
         ]);
     }
 
     /**
      * Show student dashboard
      */
-    public function student()
+    private function showStudentDashboard($userName, $role)
     {
-        $this->authController->requireRole('student');
-        
         $this->view->display('dashboard.student', [
-            'title' => 'Student Dashboard - Examination System',
+            'title' => 'Student Dashboard - Exam Management System',
             'layout' => 'main',
             'showHeader' => true,
             'showLogout' => true,
             'headerTitle' => 'Student Dashboard',
-            'headerSubtitle' => 'View available exams and results'
+            'headerSubtitle' => "Welcome back, $userName",
+            'userName' => $userName,
+            'role' => $role
         ]);
     }
 
     /**
-     * Route to appropriate dashboard based on user role
+     * Check if user is authenticated
      */
-    public function index()
+    private function requireAuth()
     {
-        $this->authController->requireAuth();
-        
-        $user_role = $_SESSION['user_role'] ?? null;
-        
-        switch ($user_role) {
-            case 'admin':
-                $this->admin();
-                break;
-            case 'faculty':
-                $this->faculty();
-                break;
-            case 'student':
-                $this->student();
-                break;
-            default:
-                // Redirect to login if no valid role
-                header('Location: /login');
-                exit;
+        session_start();
+        if (!$this->authService->isAuthenticated()) {
+            header("Location: login.php");
+            exit;
         }
     }
 }
+?>
