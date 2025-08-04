@@ -174,28 +174,5 @@ abstract class BaseTest extends TestCase
         }
     }
 
-    /**
-     * Run a single test method and capture result
-     */
-    public function runTest(string $methodName): array
-    {
-        try {
-            $this->setUp();
-            $this->$methodName();
-            $this->tearDown();
-            
-            return [
-                'status' => 'passed',
-                'message' => "$methodName passed successfully"
-            ];
-        } catch (Exception $e) {
-            $this->tearDown(); // Ensure cleanup even on failure
-            
-            return [
-                'status' => 'failed',
-                'message' => $e->getMessage(),
-                'test' => $methodName
-            ];
-        }
-    }
+
 }
