@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Services;
+namespace Service;
 
-use App\Services\UserService;
-use App\Services\UserServiceImpl;
-use App\Services\ExamService;
-use App\Services\ExamServiceImpl;
-use App\Services\SubjectService;
-use App\Services\SubjectServiceImpl;
-use App\Services\AuthService;
-use App\Services\AuthServiceImpl;
-use App\Services\QuestionService;
-use App\Services\QuestionServiceImpl;
-use App\Services\ExamResultService;
-use App\Services\ExamResultServiceImpl;
+use Service\UserService;
+use Service\Impl\UserServiceImpl;
+use Service\ExamService;
+use Service\Impl\ExamServiceImpl;
+use Service\SubjectService;
+use Service\Impl\SubjectServiceImpl;
+use Service\AuthService;
+use Service\Impl\AuthServiceImpl;
+use Service\QuestionService;
+use Service\Impl\QuestionServiceImpl;
+use Service\ExamResultService;
+use Service\Impl\ExamResultServiceImpl;
 
 /**
  * ServiceContainer

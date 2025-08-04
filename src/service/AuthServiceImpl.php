@@ -2,9 +2,9 @@
 
 namespace Service\Impl;
 
-use Service\UserService;
 use Service\AuthService;
-use Service\ServiceContainer;
+use Dao\Interface\UserDAOInterface;
+use Model\User;
 use Exception;
 
 /**
@@ -15,11 +15,11 @@ use Exception;
  */
 class AuthServiceImpl implements AuthService
 {
-    private UserService $userService;
+    private UserDAOInterface $userDAO;
 
-    public function __construct(?UserService $userService = null)
+    public function __construct(UserDAOInterface $userDAO)
     {
-        $this->userService = $userService ?? ServiceContainer::getInstance()->get(UserService::class);
+        $this->userDAO = $userDAO;
     }
 
     /**
@@ -30,23 +30,33 @@ class AuthServiceImpl implements AuthService
         try {
             error_log("AuthService::login - Attempting authentication for: $school_id");
             
-            // Authenticate user
-            $user = $this->userService->authenticateUser($school_id, $password);
+            // Validate input
+            if (empty($school_id) || empty($password)) {
+                return null;
+            }
             
-            error_log("AuthService::login - UserService result: " . ($user ? 'success' : 'failed'));
+            // Find user by school ID
+            $user = $this->userDAO->findBySchoolId($school_id);
             
-            if ($user) {
+            if (!$user) {
+                error_log("AuthService::login - User not found: $school_id");
+                return null;
+            }
+
+            // Verify password
+            if (password_verify($password, $user->getPassword())) {
                 // Start session
-                $this->startSession($user);
+                $userData = $user->toArray();
+                $this->startSession($userData);
                 error_log("AuthService::login - Session started successfully");
-                return $user;
+                return $userData;
             }
             
             error_log("AuthService::login - Authentication failed");
-            return false;
+            return null;
         } catch (Exception $e) {
             error_log("AuthService::login error: " . $e->getMessage());
-            return false;
+            return null;
         }
     }
 
