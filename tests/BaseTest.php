@@ -48,7 +48,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that a callback throws an exception
      */
-    protected function assertThrows(callable $callback, string $expectedExceptionClass = Exception::class): void
+    public function assertThrows(callable $callback, string $expectedExceptionClass = Exception::class): void
     {
         try {
             $callback();
@@ -63,7 +63,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that condition is true
      */
-    protected function assertTrue(bool $condition, string $message = ""): void
+    public function assertTrue(bool $condition, string $message = ""): void
     {
         if (!$condition) {
             throw new Exception("Assertion failed: $message");
@@ -73,7 +73,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that condition is false
      */
-    protected function assertFalse(bool $condition, string $message = ""): void
+    public function assertFalse(bool $condition, string $message = ""): void
     {
         if ($condition) {
             throw new Exception("Assertion failed: $message");
@@ -83,7 +83,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that two values are equal
      */
-    protected function assertEquals($expected, $actual, string $message = ""): void
+    public function assertEquals($expected, $actual, string $message = ""): void
     {
         if ($expected !== $actual) {
             $expectedStr = is_array($expected) ? json_encode($expected) : (string)$expected;
@@ -95,7 +95,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that value is not null
      */
-    protected function assertNotNull($value, string $message = ""): void
+    public function assertNotNull($value, string $message = ""): void
     {
         if ($value === null) {
             throw new Exception("Assertion failed: Value should not be null. $message");
@@ -105,7 +105,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that value is null
      */
-    protected function assertNull($value, string $message = ""): void
+    public function assertNull($value, string $message = ""): void
     {
         if ($value !== null) {
             throw new Exception("Assertion failed: Value should be null. $message");
@@ -115,7 +115,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that array contains a specific value
      */
-    protected function assertContains($needle, array $haystack, string $message = ""): void
+    public function assertContains($needle, array $haystack, string $message = ""): void
     {
         if (!in_array($needle, $haystack)) {
             throw new Exception("Assertion failed: Array should contain '$needle'. $message");
@@ -125,7 +125,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that array does not contain a specific value
      */
-    protected function assertNotContains($needle, array $haystack, string $message = ""): void
+    public function assertNotContains($needle, array $haystack, string $message = ""): void
     {
         if (in_array($needle, $haystack)) {
             throw new Exception("Assertion failed: Array should not contain '$needle'. $message");
@@ -135,7 +135,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that array is empty
      */
-    protected function assertEmpty(array $array, string $message = ""): void
+    public function assertEmpty(array $array, string $message = ""): void
     {
         if (!empty($array)) {
             throw new Exception("Assertion failed: Array should be empty. $message");
@@ -145,7 +145,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that array is not empty
      */
-    protected function assertNotEmpty(array $array, string $message = ""): void
+    public function assertNotEmpty(array $array, string $message = ""): void
     {
         if (empty($array)) {
             throw new Exception("Assertion failed: Array should not be empty. $message");
@@ -155,7 +155,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that value is an instance of a specific class
      */
-    protected function assertInstanceOf(string $expectedClass, $actual, string $message = ""): void
+    public function assertInstanceOf(string $expectedClass, $actual, string $message = ""): void
     {
         if (!($actual instanceof $expectedClass)) {
             $actualClass = is_object($actual) ? get_class($actual) : gettype($actual);
@@ -166,7 +166,7 @@ abstract class BaseTest extends TestCase
     /**
      * Assert that count matches expected value
      */
-    protected function assertCount(int $expectedCount, $actual, string $message = ""): void
+    public function assertCount(int $expectedCount, $actual, string $message = ""): void
     {
         $actualCount = is_array($actual) ? count($actual) : (is_countable($actual) ? count($actual) : 0);
         if ($actualCount !== $expectedCount) {
