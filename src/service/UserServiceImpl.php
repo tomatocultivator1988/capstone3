@@ -127,8 +127,14 @@ class UserServiceImpl implements UserService
     {
         try {
             // Check if user exists before attempting deletion
-            if (!$this->getUserById($user_id)) {
+            $user = $this->userDAO->findById($user_id);
+            if (!$user) {
                 throw new Exception('User not found');
+            }
+
+            // Prevent deletion of admin users
+            if ($user->getRole() === 'admin') {
+                throw new Exception('Cannot delete admin users');
             }
 
             return $this->userDAO->deleteById($user_id);
@@ -169,10 +175,14 @@ class UserServiceImpl implements UserService
     /**
      * {@inheritdoc}
      */
-    public function getAllUsers(): array
+    public function getAllUsers(?string $role = null): array
     {
         try {
-            $users = $this->userDAO->findAll();
+            if ($role) {
+                $users = $this->userDAO->findByRole($role);
+            } else {
+                $users = $this->userDAO->findAll();
+            }
             return array_map(fn($user) => $user->toArray(), $users);
         } catch (Exception $e) {
             error_log("UserService::getAllUsers error: " . $e->getMessage());

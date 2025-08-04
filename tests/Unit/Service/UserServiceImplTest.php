@@ -142,9 +142,9 @@ class UserServiceImplTest extends BaseTest
         $this->assertTrue($this->userService->userExists($school_id), "User should exist after creation");
         
         $createdUser = $this->userService->getUserBySchoolId($school_id);
-        $this->assertEquals($school_id, $createdUser->getSchoolId());
-        $this->assertEquals($full_name, $createdUser->getFullName());
-        $this->assertEquals($role, $createdUser->getRole());
+        $this->assertEquals($school_id, $createdUser['school_id']);
+        $this->assertEquals($full_name, $createdUser['full_name']);
+        $this->assertEquals($role, $createdUser['role']);
     }
 
     public function testCreateUser_WithValidFacultyData_ShouldSucceed(): void
@@ -161,9 +161,9 @@ class UserServiceImplTest extends BaseTest
         $this->assertTrue($result, "Faculty creation should succeed");
         
         $createdUser = $this->userService->getUserBySchoolId($school_id);
-        $this->assertEquals('faculty', $createdUser->getRole());
-        $this->assertNull($createdUser->getYearLevel());
-        $this->assertNull($createdUser->getSection());
+        $this->assertEquals('faculty', $createdUser['role']);
+        $this->assertNull($createdUser['year_level']);
+        $this->assertNull($createdUser['section']);
     }
 
     public function testCreateUser_WithDuplicateSchoolId_ShouldFail(): void
@@ -221,9 +221,9 @@ class UserServiceImplTest extends BaseTest
         $this->assertTrue($result, "User update should succeed");
         
         $updatedUser = $this->userService->getUserById(1);
-        $this->assertEquals('New Name', $updatedUser->getFullName());
-        $this->assertEquals(2, $updatedUser->getYearLevel());
-        $this->assertEquals('B', $updatedUser->getSection());
+        $this->assertEquals('New Name', $updatedUser['full_name']);
+        $this->assertEquals(2, $updatedUser['year_level']);
+        $this->assertEquals('B', $updatedUser['section']);
     }
 
     public function testUpdateUser_WithNonExistentUser_ShouldFail(): void
@@ -267,7 +267,7 @@ class UserServiceImplTest extends BaseTest
 
         // Assert
         $this->assertTrue($result, "Should successfully delete student user");
-        $this->assertNull($this->userService->getUserById(1), "User should no longer exist");
+        $this->assertFalse($this->userService->getUserById(1), "User should no longer exist");
     }
 
     public function testDeleteUser_WithAdminUser_ShouldFail(): void
@@ -285,7 +285,7 @@ class UserServiceImplTest extends BaseTest
 
         // Assert
         $this->assertFalse($result, "Should not allow deletion of admin users");
-        $this->assertNotNull($this->userService->getUserById(1), "Admin user should still exist");
+        $this->assertNotFalse($this->userService->getUserById(1), "Admin user should still exist");
     }
 
     public function testDeleteUser_WithNonExistentUser_ShouldFail(): void
@@ -426,7 +426,7 @@ class UserServiceImplTest extends BaseTest
         // Assert
         $this->assertCount(2, $result, "Should return only student users");
         foreach ($result as $user) {
-            $this->assertEquals('student', $user->getRole());
+            $this->assertEquals('student', $user['role']);
         }
     }
 
@@ -468,8 +468,8 @@ class UserServiceImplTest extends BaseTest
         // Assert
         $this->assertCount(3, $page1, "First page should have 3 users");
         $this->assertCount(3, $page2, "Second page should have 3 users");
-        $this->assertEquals('STU1', $page1[0]->getSchoolId(), "First page should start with STU1");
-        $this->assertEquals('STU4', $page2[0]->getSchoolId(), "Second page should start with STU4");
+        $this->assertEquals('STU1', $page1[0]['school_id'], "First page should start with STU1");
+        $this->assertEquals('STU4', $page2[0]['school_id'], "Second page should start with STU4");
     }
 
     // ===== UTILITY TESTS =====
@@ -515,7 +515,7 @@ class UserServiceImplTest extends BaseTest
         
         // Verify password was changed (would be hashed in real implementation)
         $updatedUser = $this->userService->getUserById(1);
-        $this->assertNotEquals('oldpassword', $updatedUser->getPassword(), "Password should be changed");
+        $this->assertNotEquals('oldpassword', $updatedUser['password'], "Password should be changed");
     }
 
     public function testResetPassword_WithNonExistentUser_ShouldFail(): void
