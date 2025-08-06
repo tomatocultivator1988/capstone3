@@ -1,205 +1,228 @@
 <?php
 
-namespace Controller;
+namespace App\Controller;
 
-use Service\Interface\AuthServiceInterface;
-use Config\ServiceContainer;
-use Exception;
+use Service\ServiceContainer;
+use App\Core\View;
 
-/**
- * Authentication Controller
- * 
- * Handles HTTP requests for authentication operations.
- * Uses AuthService for business logic.
- */
 class AuthController
 {
-    private AuthServiceInterface $authService;
+    private $authService;
+    private $userService;
+    private $view;
 
-    public function __construct(?AuthServiceInterface $authService = null)
+    public function __construct()
     {
-        $this->authService = $authService ?? ServiceContainer::getInstance()->get(AuthServiceInterface::class);
+        // Controllers use ServiceContainer to get Services
+        $serviceContainer = ServiceContainer::getInstance();
+        $this->authService = $serviceContainer->getAuthService();
+        $this->userService = $serviceContainer->getUserService();
+        $this->view = new View();
     }
 
     /**
-     * Handle login request
+     * Display login page (GET request)
      */
-    public function login(): void
+    public function showLogin()
     {
-        $this->setJsonHeaders();
+        // Start session
+        session_start();
 
-        if (!$this->isPostRequest()) {
-            $this->sendErrorResponse('Invalid request method. Only POST allowed.', 405);
+        // If user is already logged in, redirect to dashboard
+        if (isset($_SESSION['user_id'])) {
+            $role = $_SESSION['role'] ?? 'student';
+            $this->redirectToDashboard($role);
+            return;
+        }
+
+        // Controller decides what data to pass to the view
+        $viewData = [
+            'title' => 'Login - Exam Management System',
+            'layout' => 'main',
+            'error' => null,
+            'success' => null
+        ];
+
+        // Controller controls the view - passes data and tells it what to display
+        $this->view->display('auth.login', $viewData);
+    }
+
+    /**
+     * Handle login form submission (POST request)
+     */
+    public function login()
+    {
+        // Start session
+        session_start();
+
+        // Controller handles the HTTP request
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirectToLogin('Invalid request method');
+            return;
+        }
+
+        // Controller gets data from the request
+        $school_id = $_POST['school_id'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        // Controller validates input
+        if (empty($school_id) || empty($password)) {
+            $this->showLoginWithError('School ID and password are required');
             return;
         }
 
         try {
-            // Get POST data
-            $school_id = $_POST['school_id'] ?? '';
-            $password = $_POST['password'] ?? '';
-
-            // Validate inputs
-            if (empty($school_id) || empty($password)) {
-                $this->sendErrorResponse('Both School ID and password are required.', 400);
-                return;
-            }
-
-            // Authenticate user using AuthService
+            // Controller uses Service for business logic
             $user = $this->authService->login($school_id, $password);
 
             if ($user) {
-                $this->sendSuccessResponse('Login successful!', $user);
+                // Controller decides what to do on success
+                $this->redirectToDashboard($user['role']);
             } else {
-                $this->sendErrorResponse('Invalid credentials. Please check your School ID and password.', 401);
+                // Controller decides what to do on failure
+                $this->showLoginWithError('Invalid school ID or password');
             }
+
         } catch (Exception $e) {
-            error_log("AuthController::login error: " . $e->getMessage());
-            $this->sendErrorResponse('An error occurred during login. Please try again.', 500);
+            error_log("Login error: " . $e->getMessage());
+            $this->showLoginWithError('An error occurred during login');
         }
     }
 
     /**
-     * Handle logout request
+     * Handle logout
      */
-    public function logout(): void
+    public function logout()
     {
-        $this->setJsonHeaders();
+        // Start session
+        session_start();
 
-        try {
-            $result = $this->authService->logout();
+        // Controller uses Service for logout
+        $this->authService->destroySession();
 
-            if ($result) {
-                $this->sendSuccessResponse('Logout successful!');
-            } else {
-                $this->sendErrorResponse('Failed to logout properly.', 500);
-            }
-        } catch (Exception $e) {
-            error_log("AuthController::logout error: " . $e->getMessage());
-            $this->sendErrorResponse('An error occurred during logout.', 500);
-        }
+        // Controller decides where to redirect
+        $this->redirectToLogin('You have been logged out successfully');
     }
 
     /**
-     * Check authentication status
+     * API login endpoint (for AJAX requests)
      */
-    public function checkAuth(): void
+    public function apiLogin()
     {
-        $this->setJsonHeaders();
+        // Set headers for JSON response
+        header('Content-Type: application/json');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: POST');
+        header('Access-Control-Allow-Headers: Content-Type');
 
-        try {
-            $isAuthenticated = $this->authService->isAuthenticated();
-            $user = $this->authService->getCurrentUser();
-
-            if ($isAuthenticated && $user) {
-                $this->sendSuccessResponse('User is authenticated', [
-                    'user_id' => $user->getUserId(),
-                    'school_id' => $user->getSchoolId(),
-                    'full_name' => $user->getFullName(),
-                    'role' => $user->getRole(),
-                    'year_level' => $user->getYearLevel(),
-                    'section' => $user->getSection()
-                ]);
-            } else {
-                $this->sendErrorResponse('User is not authenticated.', 401);
-            }
-        } catch (Exception $e) {
-            error_log("AuthController::checkAuth error: " . $e->getMessage());
-            $this->sendErrorResponse('Failed to check authentication status.', 500);
-        }
-    }
-
-    /**
-     * Handle password change request
-     */
-    public function changePassword(): void
-    {
-        $this->setJsonHeaders();
-
-        if (!$this->isPostRequest()) {
-            $this->sendErrorResponse('Invalid request method. Only POST allowed.', 405);
+        // Controller handles API request
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
             return;
         }
 
         try {
-            // Check if user is authenticated
-            if (!$this->authService->isAuthenticated()) {
-                $this->sendErrorResponse('User must be logged in to change password.', 401);
+            $school_id = $_POST['school_id'] ?? '';
+            $password = $_POST['password'] ?? '';
+
+            if (empty($school_id) || empty($password)) {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'School ID and password are required'
+                ]);
                 return;
             }
 
-            // Get POST data
-            $currentPassword = $_POST['current_password'] ?? '';
-            $newPassword = $_POST['new_password'] ?? '';
-            $confirmPassword = $_POST['confirm_password'] ?? '';
+            // Controller uses Service for business logic
+            $user = $this->authService->login($school_id, $password);
 
-            // Validate inputs
-            if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
-                $this->sendErrorResponse('All password fields are required.', 400);
-                return;
+            if ($user) {
+                // Controller decides what JSON to return
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Login successful',
+                    'role' => $user['role'],
+                    'user' => [
+                        'school_id' => $user['school_id'],
+                        'full_name' => $user['full_name'],
+                        'role' => $user['role']
+                    ]
+                ]);
+            } else {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Invalid school ID or password'
+                ]);
             }
-
-            if ($newPassword !== $confirmPassword) {
-                $this->sendErrorResponse('New password and confirmation do not match.', 400);
-                return;
-            }
-
-            $currentUser = $this->authService->getCurrentUser();
-            if (!$currentUser) {
-                $this->sendErrorResponse('Unable to get current user information.', 500);
-                return;
-            }
-
-            // Note: This would require a UserService method, but for now we'll use a placeholder
-            $this->sendSuccessResponse('Password change functionality needs to be implemented.');
 
         } catch (Exception $e) {
-            error_log("AuthController::changePassword error: " . $e->getMessage());
-            $this->sendErrorResponse('An error occurred while changing password.', 500);
+            error_log("API Login error: " . $e->getMessage());
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'An error occurred during login'
+            ]);
         }
     }
 
-    // Helper methods
-
-    private function setJsonHeaders(): void
+    /**
+     * Check if user is authenticated (middleware)
+     */
+    public function requireAuth()
     {
-        header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        session_start();
+        if (!$this->authService->isAuthenticated()) {
+            $this->redirectToLogin('Please log in to continue');
+        }
+    }
 
-        // Handle preflight OPTIONS request
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            http_response_code(200);
+    /**
+     * Require specific role (middleware)
+     */
+    public function requireRole($required_role)
+    {
+        $this->requireAuth();
+        
+        if (!$this->authService->hasRole($required_role)) {
+            http_response_code(403);
+            $this->view->json([
+                'status' => 'error',
+                'message' => 'Insufficient permissions'
+            ]);
             exit;
         }
     }
 
-    private function isPostRequest(): bool
+    /**
+     * Controller helper methods for controlling flow
+     */
+    private function redirectToDashboard($role)
     {
-        return $_SERVER['REQUEST_METHOD'] === 'POST';
+        header("Location: /dashboard?role=" . $role);
+        exit;
     }
 
-    private function sendSuccessResponse(string $message, $data = null): void
+    private function redirectToLogin($message = null)
     {
-        http_response_code(200);
-        $response = [
-            'status' => 'success',
-            'message' => $message
+        if ($message) {
+            header("Location: /login?message=" . urlencode($message));
+        } else {
+            header("Location: /login");
+        }
+        exit;
+    }
+
+    private function showLoginWithError($error)
+    {
+        $viewData = [
+            'title' => 'Login - Exam Management System',
+            'layout' => 'main',
+            'error' => $error,
+            'success' => null
         ];
 
-        if ($data !== null) {
-            $response['data'] = $data;
-        }
-
-        echo json_encode($response);
-    }
-
-    private function sendErrorResponse(string $message, int $statusCode = 400): void
-    {
-        http_response_code($statusCode);
-        echo json_encode([
-            'status' => 'error',
-            'message' => $message
-        ]);
+        // Controller controls the view - tells it to show error
+        $this->view->display('auth.login', $viewData);
     }
 }
+?>

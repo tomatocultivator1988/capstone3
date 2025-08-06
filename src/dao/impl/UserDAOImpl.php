@@ -4,16 +4,15 @@ namespace Dao\Impl;
 
 use Dao\Interface\UserDAOInterface;
 use Model\User;
-use Config\Database;
+use App\Config\Database;
 use PDO;
 use PDOException;
-use Exception;
 
 /**
- * User DAO Implementation
+ * UserDAOImpl
  * 
+ * Implementation of UserDAOInterface for database operations.
  * Handles all database operations for User entities.
- * Contains only database access code, no business logic.
  */
 class UserDAOImpl implements UserDAOInterface
 {
@@ -37,7 +36,7 @@ class UserDAOImpl implements UserDAOInterface
             
             return $data ? new User($data) : null;
         } catch (PDOException $e) {
-            error_log("UserDAO::findById error: " . $e->getMessage());
+            error_log("UserDAOImpl::findById error: " . $e->getMessage());
             return null;
         }
     }
@@ -54,7 +53,7 @@ class UserDAOImpl implements UserDAOInterface
             
             return $data ? new User($data) : null;
         } catch (PDOException $e) {
-            error_log("UserDAO::findBySchoolId error: " . $e->getMessage());
+            error_log("UserDAOImpl::findBySchoolId error: " . $e->getMessage());
             return null;
         }
     }
@@ -71,36 +70,41 @@ class UserDAOImpl implements UserDAOInterface
             
             return array_map(fn($row) => new User($row), $data);
         } catch (PDOException $e) {
-            error_log("UserDAO::findAll error: " . $e->getMessage());
+            error_log("UserDAOImpl::findAll error: " . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Get users by role
+     * Find users by role
      */
     public function findByRole(string $role): array
     {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE role = ? ORDER BY full_name");
+            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE role = ? ORDER BY full_name ASC");
             $stmt->execute([$role]);
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             return array_map(fn($row) => new User($row), $data);
         } catch (PDOException $e) {
-            error_log("UserDAO::findByRole error: " . $e->getMessage());
+            error_log("UserDAOImpl::findByRole error: " . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Create a new user
+     * Create new user
      */
     public function create(User $user): bool
     {
         try {
-            $sql = "INSERT INTO {$this->table} (school_id, full_name, password, role, year_level, section, created_at, updated_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())";
+            // Validate required fields
+            if (empty($user->getSchoolId()) || empty($user->getFullName()) || empty($user->getPassword()) || empty($user->getRole())) {
+                return false;
+            }
+            
+            $sql = "INSERT INTO {$this->table} (school_id, full_name, password, role, year_level, section, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())";
             
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute([
@@ -111,30 +115,32 @@ class UserDAOImpl implements UserDAOInterface
                 $user->getYearLevel(),
                 $user->getSection()
             ]);
-
+            
             if ($result) {
-                $user->setUserId((int) $this->db->lastInsertId());
+                $user->setUserId((int)$this->db->lastInsertId());
                 return true;
             }
+            
             return false;
         } catch (PDOException $e) {
-            error_log("UserDAO::create error: " . $e->getMessage());
+            error_log("UserDAOImpl::create error: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Update an existing user
+     * Update existing user
      */
     public function update(User $user): bool
     {
         try {
-            $sql = "UPDATE {$this->table} 
-                    SET school_id = ?, full_name = ?, role = ?, year_level = ?, section = ?, updated_at = NOW() 
+            $sql = "UPDATE {$this->table} SET 
+                    school_id = ?, full_name = ?, role = ?, 
+                    year_level = ?, section = ?, updated_at = NOW() 
                     WHERE user_id = ?";
             
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
+            $stmt->execute([
                 $user->getSchoolId(),
                 $user->getFullName(),
                 $user->getRole(),
@@ -142,22 +148,28 @@ class UserDAOImpl implements UserDAOInterface
                 $user->getSection(),
                 $user->getUserId()
             ]);
+            
+            // Check if any rows were actually updated
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("UserDAO::update error: " . $e->getMessage());
+            error_log("UserDAOImpl::update error: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Delete a user by ID
+     * Delete user by ID
      */
     public function deleteById(int $user_id): bool
     {
         try {
             $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ?");
-            return $stmt->execute([$user_id]);
+            $stmt->execute([$user_id]);
+            
+            // Check if any rows were actually deleted
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("UserDAO::deleteById error: " . $e->getMessage());
+            error_log("UserDAOImpl::deleteById error: " . $e->getMessage());
             return false;
         }
     }
@@ -172,7 +184,7 @@ class UserDAOImpl implements UserDAOInterface
             $stmt->execute([$school_id]);
             return $stmt->fetchColumn() > 0;
         } catch (PDOException $e) {
-            error_log("UserDAO::existsBySchoolId error: " . $e->getMessage());
+            error_log("UserDAOImpl::existsBySchoolId error: " . $e->getMessage());
             return false;
         }
     }
@@ -185,15 +197,15 @@ class UserDAOImpl implements UserDAOInterface
         try {
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM {$this->table}");
             $stmt->execute();
-            return (int) $stmt->fetchColumn();
+            return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {
-            error_log("UserDAO::getTotalCount error: " . $e->getMessage());
+            error_log("UserDAOImpl::getTotalCount error: " . $e->getMessage());
             return 0;
         }
     }
 
     /**
-     * Get users with pagination
+     * Find users with pagination
      */
     public function findWithPagination(int $limit, int $offset): array
     {
@@ -204,24 +216,24 @@ class UserDAOImpl implements UserDAOInterface
             
             return array_map(fn($row) => new User($row), $data);
         } catch (PDOException $e) {
-            error_log("UserDAO::findWithPagination error: " . $e->getMessage());
+            error_log("UserDAOImpl::findWithPagination error: " . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Get students by year level and section
+     * Find students by year level and section
      */
     public function findStudentsByYearAndSection(int $year_level, string $section): array
     {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE role = 'student' AND year_level = ? AND section = ? ORDER BY full_name");
+            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE role = 'student' AND year_level = ? AND section = ? ORDER BY full_name ASC");
             $stmt->execute([$year_level, $section]);
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             return array_map(fn($row) => new User($row), $data);
         } catch (PDOException $e) {
-            error_log("UserDAO::findStudentsByYearAndSection error: " . $e->getMessage());
+            error_log("UserDAOImpl::findStudentsByYearAndSection error: " . $e->getMessage());
             return [];
         }
     }
@@ -233,9 +245,12 @@ class UserDAOImpl implements UserDAOInterface
     {
         try {
             $stmt = $this->db->prepare("UPDATE {$this->table} SET password = ?, updated_at = NOW() WHERE user_id = ?");
-            return $stmt->execute([$hashedPassword, $user_id]);
+            $stmt->execute([$hashedPassword, $user_id]);
+            
+            // Check if any rows were actually updated
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("UserDAO::updatePassword error: " . $e->getMessage());
+            error_log("UserDAOImpl::updatePassword error: " . $e->getMessage());
             return false;
         }
     }

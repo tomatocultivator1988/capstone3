@@ -1,375 +1,367 @@
 <?php
 
-namespace Controller;
+namespace App\Controllers;
 
-use Service\Interface\UserServiceInterface;
-use Service\Interface\AuthServiceInterface;
-use Config\ServiceContainer;
+use App\Services\UserService;
+use App\Services\AuthService;
+use App\Services\ServiceContainer;
 use Exception;
 
-/**
- * User Controller
- * 
- * Handles HTTP requests for user management operations.
- * Uses UserService for business logic.
- */
 class UserController
 {
-    private UserServiceInterface $userService;
-    private AuthServiceInterface $authService;
+    private UserService $userService;
+    private AuthService $authService;
 
-    public function __construct(?UserServiceInterface $userService = null, ?AuthServiceInterface $authService = null)
+    public function __construct(?UserService $userService = null, ?AuthService $authService = null)
     {
         $container = ServiceContainer::getInstance();
-        $this->userService = $userService ?? $container->get(UserServiceInterface::class);
-        $this->authService = $authService ?? $container->get(AuthServiceInterface::class);
+        $this->userService = $userService ?? $container->get(UserService::class);
+        $this->authService = $authService ?? $container->get(AuthService::class);
     }
 
     /**
-     * Get all users
+     * Get all users (Admin only)
      */
-    public function index(): void
-    {
-        $this->setJsonHeaders();
-
-        try {
-            // Check authentication and authorization
-            if (!$this->authService->isAuthenticated()) {
-                $this->sendErrorResponse('Authentication required.', 401);
-                return;
-            }
-
-            if (!$this->authService->hasPermission('manage_users')) {
-                $this->sendErrorResponse('Insufficient permissions.', 403);
-                return;
-            }
-
-            $role = $_GET['role'] ?? null;
-            $users = $this->userService->getAllUsers($role);
-
-            // Convert users to arrays (remove sensitive data like passwords)
-            $usersData = array_map(function($user) {
-                $data = $user->toArray();
-                unset($data['password']); // Remove password from response
-                return $data;
-            }, $users);
-
-            $this->sendSuccessResponse('Users retrieved successfully.', $usersData);
-
-        } catch (Exception $e) {
-            error_log("UserController::index error: " . $e->getMessage());
-            $this->sendErrorResponse('Failed to retrieve users.', 500);
-        }
-    }
-
-    /**
-     * Get user by ID
-     */
-    public function show(): void
-    {
-        $this->setJsonHeaders();
-
-        try {
-            // Check authentication
-            if (!$this->authService->isAuthenticated()) {
-                $this->sendErrorResponse('Authentication required.', 401);
-                return;
-            }
-
-            $userId = (int) ($_GET['id'] ?? 0);
-            if ($userId <= 0) {
-                $this->sendErrorResponse('Invalid user ID.', 400);
-                return;
-            }
-
-            $user = $this->userService->getUserById($userId);
-            if (!$user) {
-                $this->sendErrorResponse('User not found.', 404);
-                return;
-            }
-
-            // Check if user can view this user data
-            $currentUser = $this->authService->getCurrentUser();
-            if (!$this->canViewUser($currentUser, $user)) {
-                $this->sendErrorResponse('Insufficient permissions.', 403);
-                return;
-            }
-
-            $userData = $user->toArray();
-            unset($userData['password']); // Remove password from response
-
-            $this->sendSuccessResponse('User retrieved successfully.', $userData);
-
-        } catch (Exception $e) {
-            error_log("UserController::show error: " . $e->getMessage());
-            $this->sendErrorResponse('Failed to retrieve user.', 500);
-        }
-    }
-
-    /**
-     * Create new user
-     */
-    public function create(): void
-    {
-        $this->setJsonHeaders();
-
-        if (!$this->isPostRequest()) {
-            $this->sendErrorResponse('Invalid request method. Only POST allowed.', 405);
-            return;
-        }
-
-        try {
-            // Check authentication and authorization
-            if (!$this->authService->isAuthenticated()) {
-                $this->sendErrorResponse('Authentication required.', 401);
-                return;
-            }
-
-            if (!$this->authService->hasPermission('create_user')) {
-                $this->sendErrorResponse('Insufficient permissions.', 403);
-                return;
-            }
-
-            // Get POST data
-            $school_id = $_POST['school_id'] ?? '';
-            $full_name = $_POST['full_name'] ?? '';
-            $role = $_POST['role'] ?? '';
-            $year_level = !empty($_POST['year_level']) ? (int) $_POST['year_level'] : null;
-            $section = $_POST['section'] ?? null;
-
-            // Create user using service
-            $result = $this->userService->createUser($school_id, $full_name, $role, $year_level, $section);
-
-            if ($result) {
-                $this->sendSuccessResponse('User created successfully.');
-            } else {
-                $this->sendErrorResponse('Failed to create user. Please check the provided data.', 400);
-            }
-
-        } catch (Exception $e) {
-            error_log("UserController::create error: " . $e->getMessage());
-            $this->sendErrorResponse('An error occurred while creating user.', 500);
-        }
-    }
-
-    /**
-     * Update user
-     */
-    public function update(): void
-    {
-        $this->setJsonHeaders();
-
-        if (!$this->isPostRequest()) {
-            $this->sendErrorResponse('Invalid request method. Only POST allowed.', 405);
-            return;
-        }
-
-        try {
-            // Check authentication and authorization
-            if (!$this->authService->isAuthenticated()) {
-                $this->sendErrorResponse('Authentication required.', 401);
-                return;
-            }
-
-            $userId = (int) ($_POST['user_id'] ?? 0);
-            if ($userId <= 0) {
-                $this->sendErrorResponse('Invalid user ID.', 400);
-                return;
-            }
-
-            // Check if user can update this user
-            $currentUser = $this->authService->getCurrentUser();
-            $targetUser = $this->userService->getUserById($userId);
-            
-            if (!$targetUser) {
-                $this->sendErrorResponse('User not found.', 404);
-                return;
-            }
-
-            if (!$this->canEditUser($currentUser, $targetUser)) {
-                $this->sendErrorResponse('Insufficient permissions.', 403);
-                return;
-            }
-
-            // Get POST data
-            $school_id = $_POST['school_id'] ?? '';
-            $full_name = $_POST['full_name'] ?? '';
-            $role = $_POST['role'] ?? '';
-            $year_level = !empty($_POST['year_level']) ? (int) $_POST['year_level'] : null;
-            $section = $_POST['section'] ?? null;
-
-            // Update user using service
-            $result = $this->userService->updateUser($userId, $school_id, $full_name, $role, $year_level, $section);
-
-            if ($result) {
-                $this->sendSuccessResponse('User updated successfully.');
-            } else {
-                $this->sendErrorResponse('Failed to update user. Please check the provided data.', 400);
-            }
-
-        } catch (Exception $e) {
-            error_log("UserController::update error: " . $e->getMessage());
-            $this->sendErrorResponse('An error occurred while updating user.', 500);
-        }
-    }
-
-    /**
-     * Delete user
-     */
-    public function delete(): void
-    {
-        $this->setJsonHeaders();
-
-        if (!$this->isPostRequest()) {
-            $this->sendErrorResponse('Invalid request method. Only POST allowed.', 405);
-            return;
-        }
-
-        try {
-            // Check authentication and authorization
-            if (!$this->authService->isAuthenticated()) {
-                $this->sendErrorResponse('Authentication required.', 401);
-                return;
-            }
-
-            if (!$this->authService->hasPermission('delete_user')) {
-                $this->sendErrorResponse('Insufficient permissions.', 403);
-                return;
-            }
-
-            $userId = (int) ($_POST['user_id'] ?? 0);
-            if ($userId <= 0) {
-                $this->sendErrorResponse('Invalid user ID.', 400);
-                return;
-            }
-
-            // Delete user using service
-            $result = $this->userService->deleteUser($userId);
-
-            if ($result) {
-                $this->sendSuccessResponse('User deleted successfully.');
-            } else {
-                $this->sendErrorResponse('Failed to delete user.', 400);
-            }
-
-        } catch (Exception $e) {
-            error_log("UserController::delete error: " . $e->getMessage());
-            $this->sendErrorResponse('An error occurred while deleting user.', 500);
-        }
-    }
-
-    /**
-     * Get user statistics
-     */
-    public function statistics(): void
-    {
-        $this->setJsonHeaders();
-
-        try {
-            // Check authentication and authorization
-            if (!$this->authService->isAuthenticated()) {
-                $this->sendErrorResponse('Authentication required.', 401);
-                return;
-            }
-
-            if (!$this->authService->hasRole('admin')) {
-                $this->sendErrorResponse('Insufficient permissions.', 403);
-                return;
-            }
-
-            $statistics = $this->userService->getUserStatistics();
-            $this->sendSuccessResponse('User statistics retrieved successfully.', $statistics);
-
-        } catch (Exception $e) {
-            error_log("UserController::statistics error: " . $e->getMessage());
-            $this->sendErrorResponse('Failed to retrieve user statistics.', 500);
-        }
-    }
-
-    // Helper methods
-
-    private function canViewUser($currentUser, $targetUser): bool
-    {
-        if (!$currentUser || !$targetUser) {
-            return false;
-        }
-
-        // Admin can view all users
-        if ($currentUser->isAdmin()) {
-            return true;
-        }
-
-        // Users can view their own profile
-        if ($currentUser->getUserId() === $targetUser->getUserId()) {
-            return true;
-        }
-
-        // Faculty can view students in their classes (you'd need to implement this logic)
-        if ($currentUser->isFaculty() && $targetUser->isStudent()) {
-            return true; // Simplified for now
-        }
-
-        return false;
-    }
-
-    private function canEditUser($currentUser, $targetUser): bool
-    {
-        if (!$currentUser || !$targetUser) {
-            return false;
-        }
-
-        // Admin can edit all users (except other admins in some cases)
-        if ($currentUser->isAdmin()) {
-            return true;
-        }
-
-        // Users can edit their own profile (limited fields)
-        if ($currentUser->getUserId() === $targetUser->getUserId()) {
-            return true; // You might want to limit which fields can be edited
-        }
-
-        return false;
-    }
-
-    private function setJsonHeaders(): void
+    public function index()
     {
         header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            http_response_code(200);
-            exit;
+        
+        try {
+            // Debug logging
+            error_log("UserController::index - Starting...");
+            
+            $this->authService->requireRole('admin');
+            error_log("UserController::index - Admin role check passed");
+            
+            $users = $this->userService->getAllUsers();
+            error_log("UserController::index - Retrieved " . count($users) . " users");
+            
+            echo json_encode([
+                'status' => 'success',
+                'data' => $users
+            ]);
+        } catch (Exception $e) {
+            error_log("UserController::index - Error: " . $e->getMessage());
+            http_response_code($e->getCode() ?: 500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage() ?: 'Failed to fetch users.'
+            ]);
         }
     }
 
-    private function isPostRequest(): bool
+    /**
+     * Get users by role
+     */
+    public function getUsersByRole()
     {
-        return $_SERVER['REQUEST_METHOD'] === 'POST';
+        header('Content-Type: application/json');
+        try {
+            $this->authService->requireAuth();
+            
+            $role = $_GET['role'] ?? '';
+            
+            if (empty($role)) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Role parameter is required.'
+                ]);
+                return;
+            }
+
+            $users = $this->userService->getUsersByRole($role);
+            
+            echo json_encode([
+                'status' => 'success',
+                'data' => $users,
+                'count' => count($users)
+            ]);
+        } catch (Exception $e) {
+            http_response_code($e->getCode() ?: 500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage() ?: 'Failed to fetch users.'
+            ]);
+        }
     }
 
-    private function sendSuccessResponse(string $message, $data = null): void
+    /**
+     * Get students by year and section
+     */
+    public function getStudentsByYearSection()
     {
-        http_response_code(200);
-        $response = [
-            'status' => 'success',
-            'message' => $message
-        ];
+        header('Content-Type: application/json');
+        $this->authController->requireAuth();
 
-        if ($data !== null) {
-            $response['data'] = $data;
+        $year_level = $_GET['year_level'] ?? '';
+        $section = $_GET['section'] ?? '';
+        
+        if (empty($year_level) || empty($section)) {
+            http_response_code(400);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Year level and section parameters are required.'
+            ]);
+            return;
         }
 
-        echo json_encode($response);
+        try {
+            $students = $this->userModel->getStudentsByYearSection($year_level, $section);
+            
+            echo json_encode([
+                'status' => 'success',
+                'data' => $students
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Failed to fetch students.'
+            ]);
+        }
     }
 
-    private function sendErrorResponse(string $message, int $statusCode = 400): void
+    /**
+     * Create new user (Admin only)
+     */
+    public function store()
     {
-        http_response_code($statusCode);
-        echo json_encode([
-            'status' => 'error',
-            'message' => $message
-        ]);
+        header('Content-Type: application/json');
+        $this->authController->requireRole('admin');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ]);
+            return;
+        }
+
+        try {
+            // Validate required fields
+            $required_fields = ['school_id', 'full_name', 'role'];
+            foreach ($required_fields as $field) {
+                if (empty($_POST[$field])) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required.'
+                    ]);
+                    return;
+                }
+            }
+
+            // Additional validation for students
+            if ($_POST['role'] === 'student') {
+                if (empty($_POST['year_level']) || empty($_POST['section'])) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Year level and section are required for students.'
+                    ]);
+                    return;
+                }
+            }
+
+            $data = [
+                'school_id' => $_POST['school_id'],
+                'full_name' => $_POST['full_name'],
+                'role' => $_POST['role'],
+                'year_level' => $_POST['year_level'] ?? null,
+                'section' => $_POST['section'] ?? null
+            ];
+
+            $user_id = $this->userModel->create($data);
+
+            if ($user_id) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'User created successfully.',
+                    'user_id' => $user_id
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Failed to create user.'
+                ]);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'An error occurred while creating user.'
+            ]);
+        }
+    }
+
+    /**
+     * Update user (Admin only)
+     */
+    public function update()
+    {
+        header('Content-Type: application/json');
+        $this->authController->requireRole('admin');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ]);
+            return;
+        }
+
+        try {
+            $user_id = $_POST['user_id'] ?? '';
+            
+            if (empty($user_id)) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'User ID is required.'
+                ]);
+                return;
+            }
+
+            // Validate required fields
+            $required_fields = ['school_id', 'full_name', 'role'];
+            foreach ($required_fields as $field) {
+                if (empty($_POST[$field])) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required.'
+                    ]);
+                    return;
+                }
+            }
+
+            $data = [
+                'school_id' => $_POST['school_id'],
+                'full_name' => $_POST['full_name'],
+                'role' => $_POST['role'],
+                'year_level' => $_POST['year_level'] ?? null,
+                'section' => $_POST['section'] ?? null
+            ];
+
+            $result = $this->userModel->update($user_id, $data);
+
+            if ($result) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'User updated successfully.'
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Failed to update user.'
+                ]);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'An error occurred while updating user.'
+            ]);
+        }
+    }
+
+    /**
+     * Delete user (Admin only)
+     */
+    public function delete()
+    {
+        header('Content-Type: application/json');
+        $this->authController->requireRole('admin');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ]);
+            return;
+        }
+
+        try {
+            $user_id = $_POST['user_id'] ?? '';
+            
+            if (empty($user_id)) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'User ID is required.'
+                ]);
+                return;
+            }
+
+            $result = $this->userModel->delete($user_id);
+
+            if ($result) {
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'User deleted successfully.'
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Failed to delete user.'
+                ]);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'An error occurred while deleting user.'
+            ]);
+        }
+    }
+
+    /**
+     * Get single user by ID
+     */
+    public function show()
+    {
+        header('Content-Type: application/json');
+        $this->authController->requireAuth();
+
+        $user_id = $_GET['id'] ?? '';
+        
+        if (empty($user_id)) {
+            http_response_code(400);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'User ID is required.'
+            ]);
+            return;
+        }
+
+        try {
+            $user = $this->userModel->findById($user_id);
+
+            if ($user) {
+                echo json_encode([
+                    'status' => 'success',
+                    'data' => $user
+                ]);
+            } else {
+                http_response_code(404);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'User not found.'
+                ]);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Failed to fetch user.'
+            ]);
+        }
     }
 }

@@ -1,25 +1,20 @@
 <?php
 
-namespace Config;
+namespace App\Config;
 
 use PDO;
 use PDOException;
 
-/**
- * Database Configuration and Connection Management
- * 
- * Singleton pattern for database connections
- */
 class Database
 {
-    private static ?Database $instance = null;
-    private PDO $connection;
+    private static $instance = null;
+    private $connection;
     
-    private string $host = '127.0.0.1';
-    private string $database = 'capstone2';
-    private string $username = 'root';
-    private string $password = '';
-    private string $charset = 'utf8mb4';
+    private $host = '127.0.0.1';
+    private $database = 'capstone2';
+    private $username = 'root';
+    private $password = '';
+    private $charset = 'utf8mb4';
 
     private function __construct()
     {
@@ -38,7 +33,7 @@ class Database
         }
     }
 
-    public static function getInstance(): Database
+    public static function getInstance()
     {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -46,7 +41,7 @@ class Database
         return self::$instance;
     }
 
-    public function getConnection(): PDO
+    public function getConnection()
     {
         return $this->connection;
     }

@@ -11,10 +11,10 @@ namespace Model;
 class User
 {
     private ?int $user_id = null;
-    private string $school_id = '';
-    private string $full_name = '';
-    private string $password = '';
-    private string $role = '';
+    private ?string $school_id = null;
+    private ?string $full_name = null;
+    private ?string $password = null;
+    private ?string $role = null;
     private ?int $year_level = null;
     private ?string $section = null;
     private ?string $created_at = null;
@@ -33,10 +33,10 @@ class User
     public function hydrate(array $data): void
     {
         $this->user_id = $data['user_id'] ?? null;
-        $this->school_id = $data['school_id'] ?? '';
-        $this->full_name = $data['full_name'] ?? '';
-        $this->password = $data['password'] ?? '';
-        $this->role = $data['role'] ?? '';
+        $this->school_id = $data['school_id'] ?? null;
+        $this->full_name = $data['full_name'] ?? null;
+        $this->password = $data['password'] ?? null;
+        $this->role = $data['role'] ?? null;
         $this->year_level = $data['year_level'] ?? null;
         $this->section = $data['section'] ?? null;
         $this->created_at = $data['created_at'] ?? null;
@@ -46,19 +46,84 @@ class User
     /**
      * Convert model to array
      */
-    public function toArray(): array
+    public function toArray(bool $includePassword = false): array
     {
-        return [
+        $array = [
             'user_id' => $this->user_id,
             'school_id' => $this->school_id,
             'full_name' => $this->full_name,
-            'password' => $this->password,
             'role' => $this->role,
             'year_level' => $this->year_level,
             'section' => $this->section,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at
         ];
+
+        // Only include password if explicitly requested
+        if ($includePassword && $this->password !== null) {
+            $array['password'] = $this->password;
+        }
+
+        return $array;
+    }
+
+    /**
+     * Get display name for the user
+     */
+    public function getDisplayName(): string
+    {
+        if ($this->full_name !== null && $this->full_name !== '') {
+            return $this->full_name;
+        }
+        
+        if ($this->school_id !== null && $this->school_id !== '') {
+            return $this->school_id;
+        }
+        
+        return 'Guest';
+    }
+
+    /**
+     * Get student information as formatted string
+     */
+    public function getStudentInfo(): string
+    {
+        if ($this->role !== 'student') {
+            return '';
+        }
+
+        $info = [];
+        
+        if ($this->year_level !== null) {
+            $info[] = "Year " . $this->year_level;
+        }
+        
+        if ($this->section !== null && $this->section !== '') {
+            $info[] = "Section " . $this->section;
+        }
+
+        return implode(' - ', $info);
+    }
+
+    /**
+     * Check if user data is complete
+     */
+    public function isDataComplete(): bool
+    {
+        // Basic required fields
+        if ($this->school_id === null || $this->school_id === '' || 
+            $this->full_name === null || $this->full_name === '' || 
+            $this->role === null || $this->role === '') {
+            return false;
+        }
+
+        // Student-specific required fields
+        if ($this->role === 'student') {
+            return $this->year_level !== null && $this->section !== null && $this->section !== '';
+        }
+
+        // Faculty and admin don't need year_level and section
+        return true;
     }
 
     // Getters
@@ -67,22 +132,22 @@ class User
         return $this->user_id;
     }
 
-    public function getSchoolId(): string
+    public function getSchoolId(): ?string
     {
         return $this->school_id;
     }
 
-    public function getFullName(): string
+    public function getFullName(): ?string
     {
         return $this->full_name;
     }
 
-    public function getPassword(): string
+    public function getPassword(): ?string
     {
         return $this->password;
     }
 
-    public function getRole(): string
+    public function getRole(): ?string
     {
         return $this->role;
     }
@@ -113,22 +178,22 @@ class User
         $this->user_id = $user_id;
     }
 
-    public function setSchoolId(string $school_id): void
+    public function setSchoolId(?string $school_id): void
     {
         $this->school_id = $school_id;
     }
 
-    public function setFullName(string $full_name): void
+    public function setFullName(?string $full_name): void
     {
         $this->full_name = $full_name;
     }
 
-    public function setPassword(string $password): void
+    public function setPassword(?string $password): void
     {
         $this->password = $password;
     }
 
-    public function setRole(string $role): void
+    public function setRole(?string $role): void
     {
         $this->role = $role;
     }
