@@ -18,8 +18,11 @@ return [
     ],
     
     'POST' => [
-        '/api/auth/login' => 'App\Controller\AuthController@login',
+        '/login' => 'App\Controller\AuthController@login',
+        '/api/auth/login' => 'App\Controller\AuthController@apiLogin',
         '/api/auth/logout' => 'App\Controller\AuthController@logout',
+        '/dashboard/action' => 'App\Controller\DashboardController@handleDashboardAction',
+        '/api/dashboard/stats' => 'App\Controller\DashboardController@refreshStats',
     ]
 ];
 ?>

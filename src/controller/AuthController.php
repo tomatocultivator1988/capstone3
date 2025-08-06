@@ -21,7 +21,7 @@ class AuthController
     }
 
     /**
-     * Display login page
+     * Display login page (GET request)
      */
     public function showLogin()
     {
@@ -31,78 +31,61 @@ class AuthController
         // If user is already logged in, redirect to dashboard
         if (isset($_SESSION['user_id'])) {
             $role = $_SESSION['role'] ?? 'student';
-            header("Location: /dashboard?role=" . $role);
-            exit;
+            $this->redirectToDashboard($role);
+            return;
         }
 
-        // Display login page
-        $this->view->display('auth.login', [
+        // Controller decides what data to pass to the view
+        $viewData = [
             'title' => 'Login - Exam Management System',
-            'layout' => 'main'
-        ]);
+            'layout' => 'main',
+            'error' => null,
+            'success' => null
+        ];
+
+        // Controller controls the view - passes data and tells it what to display
+        $this->view->display('auth.login', $viewData);
     }
 
     /**
-     * Handle login form submission
+     * Handle login form submission (POST request)
      */
     public function login()
     {
-        // Set headers for JSON response
-        header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: POST');
-        header('Access-Control-Allow-Headers: Content-Type');
+        // Start session
+        session_start();
 
-        // Only accept POST requests
+        // Controller handles the HTTP request
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+            $this->redirectToLogin('Invalid request method');
+            return;
+        }
+
+        // Controller gets data from the request
+        $school_id = $_POST['school_id'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        // Controller validates input
+        if (empty($school_id) || empty($password)) {
+            $this->showLoginWithError('School ID and password are required');
             return;
         }
 
         try {
-            // Get POST data
-            $school_id = $_POST['school_id'] ?? '';
-            $password = $_POST['password'] ?? '';
-
-            // Validate input
-            if (empty($school_id) || empty($password)) {
-                echo json_encode([
-                    'status' => 'error',
-                    'message' => 'School ID and password are required'
-                ]);
-                return;
-            }
-
-            // Use Service for authentication (Controller doesn't know about DAOs)
+            // Controller uses Service for business logic
             $user = $this->authService->login($school_id, $password);
 
             if ($user) {
-                // Login successful
-                echo json_encode([
-                    'status' => 'success',
-                    'message' => 'Login successful',
-                    'role' => $user['role'],
-                    'user' => [
-                        'school_id' => $user['school_id'],
-                        'full_name' => $user['full_name'],
-                        'role' => $user['role']
-                    ]
-                ]);
+                // Controller decides what to do on success
+                $this->redirectToDashboard($user['role']);
             } else {
-                // Login failed
-                echo json_encode([
-                    'status' => 'error',
-                    'message' => 'Invalid school ID or password'
-                ]);
+                // Controller decides what to do on failure
+                $this->showLoginWithError('Invalid school ID or password');
             }
 
         } catch (Exception $e) {
             error_log("Login error: " . $e->getMessage());
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'An error occurred during login'
-            ]);
+            $this->showLoginWithError('An error occurred during login');
         }
     }
 
@@ -114,28 +97,87 @@ class AuthController
         // Start session
         session_start();
 
-        // Use Service for logout (Controller doesn't know about DAOs)
+        // Controller uses Service for logout
         $this->authService->destroySession();
 
-        // Redirect to login page
-        header("Location: /login");
-        exit;
+        // Controller decides where to redirect
+        $this->redirectToLogin('You have been logged out successfully');
     }
 
     /**
-     * Check if user is authenticated
+     * API login endpoint (for AJAX requests)
+     */
+    public function apiLogin()
+    {
+        // Set headers for JSON response
+        header('Content-Type: application/json');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: POST');
+        header('Access-Control-Allow-Headers: Content-Type');
+
+        // Controller handles API request
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            $school_id = $_POST['school_id'] ?? '';
+            $password = $_POST['password'] ?? '';
+
+            if (empty($school_id) || empty($password)) {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'School ID and password are required'
+                ]);
+                return;
+            }
+
+            // Controller uses Service for business logic
+            $user = $this->authService->login($school_id, $password);
+
+            if ($user) {
+                // Controller decides what JSON to return
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Login successful',
+                    'role' => $user['role'],
+                    'user' => [
+                        'school_id' => $user['school_id'],
+                        'full_name' => $user['full_name'],
+                        'role' => $user['role']
+                    ]
+                ]);
+            } else {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Invalid school ID or password'
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log("API Login error: " . $e->getMessage());
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'An error occurred during login'
+            ]);
+        }
+    }
+
+    /**
+     * Check if user is authenticated (middleware)
      */
     public function requireAuth()
     {
         session_start();
         if (!$this->authService->isAuthenticated()) {
-            header("Location: /login");
-            exit;
+            $this->redirectToLogin('Please log in to continue');
         }
     }
 
     /**
-     * Require specific role
+     * Require specific role (middleware)
      */
     public function requireRole($required_role)
     {
@@ -143,12 +185,44 @@ class AuthController
         
         if (!$this->authService->hasRole($required_role)) {
             http_response_code(403);
-            echo json_encode([
+            $this->view->json([
                 'status' => 'error',
                 'message' => 'Insufficient permissions'
             ]);
             exit;
         }
+    }
+
+    /**
+     * Controller helper methods for controlling flow
+     */
+    private function redirectToDashboard($role)
+    {
+        header("Location: /dashboard?role=" . $role);
+        exit;
+    }
+
+    private function redirectToLogin($message = null)
+    {
+        if ($message) {
+            header("Location: /login?message=" . urlencode($message));
+        } else {
+            header("Location: /login");
+        }
+        exit;
+    }
+
+    private function showLoginWithError($error)
+    {
+        $viewData = [
+            'title' => 'Login - Exam Management System',
+            'layout' => 'main',
+            'error' => $error,
+            'success' => null
+        ];
+
+        // Controller controls the view - tells it to show error
+        $this->view->display('auth.login', $viewData);
     }
 }
 ?>

@@ -1,3 +1,15 @@
+<?php if (isset($error) && $error): ?>
+<div class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
+    <?php echo htmlspecialchars($error); ?>
+</div>
+<?php endif; ?>
+
+<?php if (isset($success) && $success): ?>
+<div class="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50">
+    <?php echo htmlspecialchars($success); ?>
+</div>
+<?php endif; ?>
+
 <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
   <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
     <div class="flex flex-col items-center mb-6">
