@@ -38,8 +38,8 @@ class ServiceContainer
         $userDAO = new UserDAOImpl();
 
         // Create Service instances with their dependencies
-        $this->services['authService'] = new \Service\Impl\AuthServiceImpl($userDAO);
-        $this->services['userService'] = new \Service\Impl\UserServiceImpl($userDAO);
+        $this->services['authService'] = new \Service\AuthServiceImpl($userDAO);
+        $this->services['userService'] = new \Service\UserServiceImpl($userDAO);
     }
 
     /**
@@ -56,7 +56,7 @@ class ServiceContainer
     /**
      * Get AuthService instance
      */
-    public function getAuthService(): \Service\Impl\AuthServiceImpl
+    public function getAuthService(): \Service\AuthServiceImpl
     {
         return $this->get('authService');
     }
@@ -64,7 +64,7 @@ class ServiceContainer
     /**
      * Get UserService instance
      */
-    public function getUserService(): \Service\Impl\UserServiceImpl
+    public function getUserService(): \Service\UserServiceImpl
     {
         return $this->get('userService');
     }

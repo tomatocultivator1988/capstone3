@@ -1,6 +1,6 @@
 <?php
 
-namespace Service\Impl;
+namespace Service;
 
 use Service\AuthService;
 use Dao\Interface\UserDAOInterface;

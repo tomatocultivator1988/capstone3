@@ -1,6 +1,6 @@
 <?php
 
-namespace Service\Impl;
+namespace Service;
 
 use Model\User;
 use Dao\Interface\UserDAOInterface;
