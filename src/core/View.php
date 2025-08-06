@@ -9,7 +9,7 @@ class View
 
     public function __construct($viewsPath = null)
     {
-        $this->viewsPath = $viewsPath ?: __DIR__ . '/../Views/';
+        $this->viewsPath = $viewsPath ?: __DIR__ . '/../views/';
     }
 
     /**
