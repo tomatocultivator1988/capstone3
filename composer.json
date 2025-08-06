@@ -2,7 +2,6 @@
     "autoload": {
         "psr-4": {
             "App\\": "src/",
-            "Controller\\": "src/controller/",
             "Service\\": "src/service/",
             "Dao\\": "src/dao/",
             "Dao\\Impl\\": "src/dao/impl/",
