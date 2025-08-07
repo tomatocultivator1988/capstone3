@@ -58,8 +58,11 @@ class User
             error_log("Hashed password verification: " . ($result ? 'SUCCESS' : 'FAILED'));
             return $result;
         } else {
-            $result = $password === $user['password'] ? $user : false;
-            error_log("Plain text password verification: " . ($result ? 'SUCCESS' : 'FAILED'));
+            // Trim both passwords before comparing
+            $inputPassword = trim($password);
+            $storedPassword = trim($user['password']);
+            $result = $inputPassword === $storedPassword ? $user : false;
+            error_log("Plain text password verification (trimmed): " . ($result ? 'SUCCESS' : 'FAILED') . ", Input: '" . $inputPassword . "', Stored: '" . $storedPassword . "'");
             return $result;
         }
     }
