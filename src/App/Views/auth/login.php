@@ -57,7 +57,7 @@ document.getElementById("loginForm").onsubmit = async function (e) {
   msg.className = "text-center text-sm mt-2";
 
   try {
-    const response = await fetch("../api/auth/login.php", {
+    const response = await fetch("/capstonemvc27/api/auth/login.php", {
       method: "POST",
       body: formData,
       credentials: "include"

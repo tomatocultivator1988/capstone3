@@ -24,8 +24,14 @@ class User
         try {
             $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE school_id = ?");
             $stmt->execute([$school_id]);
-            return $stmt->fetch();
+            $result = $stmt->fetch();
+            
+            // Debug: Log the search
+            error_log("Searching for school_id: " . $school_id . ", Found: " . ($result ? 'YES' : 'NO'));
+            
+            return $result;
         } catch (PDOException $e) {
+            error_log("Database error in findBySchoolId: " . $e->getMessage());
             return false;
         }
     }
@@ -38,14 +44,23 @@ class User
         $user = $this->findBySchoolId($school_id);
         
         if (!$user) {
+            error_log("User not found for school_id: " . $school_id);
             return false;
         }
 
+        // Debug: Log authentication attempt
+        error_log("Authenticating user: " . $school_id . ", Password match: " . ($password === $user['password'] ? 'YES' : 'NO'));
+        error_log("Stored password: " . $user['password'] . ", Input password: " . $password);
+
         // Check if password is hashed (starts with $) or plain text
         if (strpos($user['password'], '$') === 0) {
-            return password_verify($password, $user['password']) ? $user : false;
+            $result = password_verify($password, $user['password']) ? $user : false;
+            error_log("Hashed password verification: " . ($result ? 'SUCCESS' : 'FAILED'));
+            return $result;
         } else {
-            return $password === $user['password'] ? $user : false;
+            $result = $password === $user['password'] ? $user : false;
+            error_log("Plain text password verification: " . ($result ? 'SUCCESS' : 'FAILED'));
+            return $result;
         }
     }
 
