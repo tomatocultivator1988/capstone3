@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Examination System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
 <div class="min-h-screen flex items-center justify-center">
   <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
     <div class="flex flex-col items-center mb-6">
@@ -48,7 +57,7 @@ document.getElementById("loginForm").onsubmit = async function (e) {
   msg.className = "text-center text-sm mt-2";
 
   try {
-    const response = await fetch("../api/auth/login.php", {
+    const response = await fetch("/capstonemvc27/api/auth/login.php", {
       method: "POST",
       body: formData,
       credentials: "include"
@@ -62,13 +71,8 @@ document.getElementById("loginForm").onsubmit = async function (e) {
     if (result.status === "success") {
       msg.className += " text-green-600";
       setTimeout(() => {
-        if (result.role === "admin") {
-          window.location.href = "/admin/dashboard";
-        } else if (result.role === "faculty") {
-          window.location.href = "/faculty/dashboard";
-        } else {
-          window.location.href = "/student/dashboard";
-        }
+        // Redirect back to login page which will show welcome message for logged in users
+        window.location.href = "login_mvc.php";
       }, 1200);
     } else {
       msg.className += " text-red-600";
@@ -78,5 +82,7 @@ document.getElementById("loginForm").onsubmit = async function (e) {
     msg.textContent = "Login failed: " + error.message;
     msg.className += " text-red-600";
   }
-};
+  };
 </script>
+</body>
+</html>
